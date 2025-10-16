@@ -91,7 +91,7 @@ export default function ReportsPage() {
     setGeneratingReport(false);
   };
 
-  const updateReportConfig = (key: keyof ReportConfig, value: any) => {
+  const updateReportConfig = (key: keyof ReportConfig, value: unknown) => {
     setReportConfig(prev => ({
       ...prev,
       [key]: value

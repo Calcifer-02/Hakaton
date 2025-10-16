@@ -58,17 +58,17 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
 
-  const updateSettings = (section: keyof SystemSettings, key: string, value: any) => {
+  const updateSettings = (section: keyof SystemSettings, key: string, value: unknown) => {
     setSettings(prev => ({
       ...prev,
       [section]: {
-        ...(prev[section] as any),
+        ...(prev[section] as Record<string, unknown>),
         [key]: value
       }
     }));
   };
 
-  const updateTopLevelSetting = (key: keyof SystemSettings, value: any) => {
+  const updateTopLevelSetting = (key: keyof SystemSettings, value: unknown) => {
     setSettings(prev => ({
       ...prev,
       [key]: value

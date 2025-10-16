@@ -33,30 +33,31 @@ export const INDUSTRIES = [
 ];
 
 // Валидация данных предприятия
-export const validateEnterprise = (data: any): { isValid: boolean; errors: string[] } => {
+export const validateEnterprise = (data: Record<string, unknown>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
   if (!data.name || typeof data.name !== 'string') {
     errors.push('Некорректное название предприятия');
   }
 
-  if (!data.industry || !INDUSTRIES.includes(data.industry)) {
+  if (!data.industry || !INDUSTRIES.includes(data.industry as string)) {
     errors.push('Некорректная отрасль');
   }
 
-  if (!data.region || !MOSCOW_REGIONS.includes(data.region)) {
+  if (!data.region || !MOSCOW_REGIONS.includes(data.region as string)) {
     errors.push('Некорректный регион');
   }
 
-  if (!data.employees || data.employees < 0) {
-    errors.push('Некорректн��е количество сотрудников');
+  if (!data.employees || Number(data.employees) < 0) {
+    errors.push('Некорректное количество сотрудников');
   }
 
-  if (!data.revenue || data.revenue < 0) {
+  if (!data.revenue || Number(data.revenue) < 0) {
     errors.push('Некорректная выручка');
   }
 
-  if (!data.contactInfo?.address) {
+  const contactInfo = data.contactInfo as Record<string, unknown> | undefined;
+  if (!contactInfo?.address) {
     errors.push('Отсутствует адрес');
   }
 
@@ -76,25 +77,26 @@ export const parseCSV = (file: File): Promise<UploadResult> => {
         const errors: string[] = [];
         let errorCount = 0;
 
-        results.data.forEach((row: any, index: number) => {
-          const validation = validateEnterprise(row);
+        results.data.forEach((row: unknown, index: number) => {
+          const rowData = row as Record<string, unknown>;
+          const validation = validateEnterprise(rowData);
 
           if (validation.isValid) {
             const enterprise: Enterprise = {
               id: crypto.randomUUID(),
-              name: row.name,
-              industry: row.industry,
-              region: row.region,
-              employees: parseInt(row.employees) || 0,
-              revenue: parseFloat(row.revenue) || 0,
-              taxesPaid: parseFloat(row.taxesPaid) || 0,
-              registrationDate: new Date(row.registrationDate || Date.now()),
+              name: String(rowData.name),
+              industry: String(rowData.industry),
+              region: String(rowData.region),
+              employees: parseInt(String(rowData.employees)) || 0,
+              revenue: parseFloat(String(rowData.revenue)) || 0,
+              taxesPaid: parseFloat(String(rowData.taxesPaid)) || 0,
+              registrationDate: new Date(String(rowData.registrationDate) || Date.now()),
               lastUpdated: new Date(),
-              status: row.status || 'active',
+              status: (rowData.status as 'active' | 'inactive' | 'suspended') || 'active',
               contactInfo: {
-                address: row.address,
-                phone: row.phone,
-                email: row.email
+                address: String(rowData.address),
+                phone: String(rowData.phone || ''),
+                email: String(rowData.email || '')
               }
             };
             enterprises.push(enterprise);
@@ -143,25 +145,26 @@ export const parseExcel = (file: File): Promise<UploadResult> => {
         const errors: string[] = [];
         let errorCount = 0;
 
-        jsonData.forEach((row: any, index: number) => {
-          const validation = validateEnterprise(row);
+        jsonData.forEach((row: unknown, index: number) => {
+          const rowData = row as Record<string, unknown>;
+          const validation = validateEnterprise(rowData);
 
           if (validation.isValid) {
             const enterprise: Enterprise = {
               id: crypto.randomUUID(),
-              name: row.name,
-              industry: row.industry,
-              region: row.region,
-              employees: parseInt(row.employees) || 0,
-              revenue: parseFloat(row.revenue) || 0,
-              taxesPaid: parseFloat(row.taxesPaid) || 0,
-              registrationDate: new Date(row.registrationDate || Date.now()),
+              name: String(rowData.name),
+              industry: String(rowData.industry),
+              region: String(rowData.region),
+              employees: parseInt(String(rowData.employees)) || 0,
+              revenue: parseFloat(String(rowData.revenue)) || 0,
+              taxesPaid: parseFloat(String(rowData.taxesPaid)) || 0,
+              registrationDate: new Date(String(rowData.registrationDate) || Date.now()),
               lastUpdated: new Date(),
-              status: row.status || 'active',
+              status: (rowData.status as 'active' | 'inactive' | 'suspended') || 'active',
               contactInfo: {
-                address: row.address,
-                phone: row.phone,
-                email: row.email
+                address: String(rowData.address),
+                phone: String(rowData.phone || ''),
+                email: String(rowData.email || '')
               }
             };
             enterprises.push(enterprise);
