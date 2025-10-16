@@ -1,1 +1,6 @@
-{}
+{
+  "/analytics/page": "app/analytics/page.js",
+  "/reports/page": "app/reports/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/upload/page": "app/upload/page.js"
+}
