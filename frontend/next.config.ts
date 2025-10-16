@@ -5,8 +5,6 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   distDir: 'dist',
-  basePath: '/Hakaton',
-  assetPrefix: '/Hakaton',
   images: {
     unoptimized: true
   }
