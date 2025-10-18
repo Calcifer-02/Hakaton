@@ -9,7 +9,8 @@ import {
   Settings,
   Building2,
   TrendingUp,
-  Database
+  Database,
+  Map
 } from 'lucide-react';
 
 const navigationItems = [
@@ -24,6 +25,12 @@ const navigationItems = [
     href: '/upload',
     icon: Upload,
     description: 'Загрузка файлов с данными предприятий'
+  },
+  {
+    name: 'Карта предприятий',
+    href: '/map',
+    icon: Map,
+    description: 'Географическое расположение предприятий'
   },
   {
     name: 'Аналитика',

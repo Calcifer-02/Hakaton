@@ -95,6 +95,8 @@ const parseCSV = (fileBuffer) => {
                 registrationDate: row.registrationDate || new Date().toISOString(),
                 lastUpdated: new Date().toISOString(),
                 status: row.status || 'active',
+                latitude: row.latitude ? parseFloat(row.latitude) : null,
+                longitude: row.longitude ? parseFloat(row.longitude) : null,
                 contactInfo: {
                   address: String(row.address),
                   phone: row.phone || '',
@@ -155,6 +157,8 @@ const parseExcel = (fileBuffer) => {
             registrationDate: row.registrationDate || new Date().toISOString(),
             lastUpdated: new Date().toISOString(),
             status: row.status || 'active',
+            latitude: row.latitude ? parseFloat(row.latitude) : null,
+            longitude: row.longitude ? parseFloat(row.longitude) : null,
             contactInfo: {
               address: String(row.address),
               phone: row.phone || '',
@@ -189,4 +193,3 @@ module.exports = {
   MOSCOW_REGIONS,
   INDUSTRIES
 };
-

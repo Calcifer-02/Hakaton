@@ -454,7 +454,6 @@ __turbopack_context__.s([
     ()=>uploadFile
 ]);
 const API_BASE_URL = ("TURBOPACK compile-time value", "http://localhost:4000/api") || 'http://localhost:4000/api';
-console.log('🔧 API_BASE_URL:', API_BASE_URL); // Для отладки
 // Функция для получения токена из куки
 function getAuthToken() {
     if (typeof document === 'undefined') return null;
@@ -521,12 +520,10 @@ const getEnterprises = async (filters)=>{
         params.append('maxRevenue', filters.maxRevenue.toString());
     }
     const url = `${API_BASE_URL}/enterprises${params.toString() ? '?' + params.toString() : ''}`;
-    console.log('🔍 Requesting URL:', url); // Отладка
     const response = await fetch(url, {
         headers: getHeaders(),
         credentials: 'include'
     });
-    console.log('📡 Response status:', response.status, response.statusText); // Отладка
     if (!response.ok) {
         throw new Error(`Ошибка получения данных: ${response.statusText}`);
     }
@@ -1401,7 +1398,7 @@ function AnalyticsPage() {
                         className: "px-6 py-4 border-b border-gray-200",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
                             className: "text-lg font-semibold text-gray-900",
-                            children: "Топ предприяти�� по выручке"
+                            children: "Топ предприятий по выручке"
                         }, void 0, false, {
                             fileName: "[project]/src/app/analytics/page.tsx",
                             lineNumber: 348,

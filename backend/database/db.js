@@ -27,7 +27,9 @@ db.serialize(() => {
       status TEXT NOT NULL,
       address TEXT NOT NULL,
       phone TEXT,
-      email TEXT
+      email TEXT,
+      latitude REAL,
+      longitude REAL
     )
   `, (err) => {
     if (err) {
@@ -44,8 +46,8 @@ const addEnterprise = (enterprise) => {
     const sql = `
       INSERT INTO enterprises (
         id, name, industry, region, employees, revenue, taxesPaid,
-        registrationDate, lastUpdated, status, address, phone, email
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        registrationDate, lastUpdated, status, address, phone, email, latitude, longitude
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.run(sql, [
@@ -61,7 +63,9 @@ const addEnterprise = (enterprise) => {
       enterprise.status,
       enterprise.contactInfo.address,
       enterprise.contactInfo.phone || null,
-      enterprise.contactInfo.email || null
+      enterprise.contactInfo.email || null,
+      enterprise.latitude || null,
+      enterprise.longitude || null
     ], function(err) {
       if (err) {
         reject(err);
@@ -134,6 +138,8 @@ const getAllEnterprises = (filters = {}) => {
           registrationDate: row.registrationDate,
           lastUpdated: row.lastUpdated,
           status: row.status,
+          latitude: row.latitude,
+          longitude: row.longitude,
           contactInfo: {
             address: row.address,
             phone: row.phone,
@@ -230,6 +236,8 @@ const getEnterpriseById = (id) => {
           registrationDate: row.registrationDate,
           lastUpdated: row.lastUpdated,
           status: row.status,
+          latitude: row.latitude,
+          longitude: row.longitude,
           contactInfo: {
             address: row.address,
             phone: row.phone,
@@ -249,4 +257,3 @@ module.exports = {
   clearAllEnterprises,
   getEnterpriseById
 };
-

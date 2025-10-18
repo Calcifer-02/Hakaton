@@ -2,8 +2,6 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-console.log('🔧 API_BASE_URL:', API_BASE_URL); // Для отладки
-
 // Функция для получения токена из куки
 function getAuthToken(): string | null {
   if (typeof document === 'undefined') return null;
@@ -107,13 +105,10 @@ export const getEnterprises = async (filters?: {
   }
 
   const url = `${API_BASE_URL}/enterprises${params.toString() ? '?' + params.toString() : ''}`;
-  console.log('🔍 Requesting URL:', url); // Отладка
   const response = await fetch(url, {
     headers: getHeaders(),
     credentials: 'include',
   });
-
-  console.log('📡 Response status:', response.status, response.statusText); // Отладка
 
   if (!response.ok) {
     throw new Error(`Ошибка получения данных: ${response.statusText}`);

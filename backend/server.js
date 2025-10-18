@@ -4,12 +4,16 @@ const multer = require('multer');
 const path = require('path');
 const { addEnterprise, getAllEnterprises, getStatistics, clearAllEnterprises, getEnterpriseById } = require('./database/db');
 const { parseCSV, parseExcel } = require('./utils/fileParser');
+const { authMiddleware, optionalAuthMiddleware } = require('./middleware/authMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -33,13 +37,21 @@ const upload = multer({
 
 // Маршруты
 
-// Проверка работоспособности API
+// Проверка работоспособности API (публичный)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend API работает' });
 });
 
-// Загрузка файла
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+// Эндпоинт для валидации токена (используется frontend middleware)
+app.get('/api/auth/validate', authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
+});
+
+// Загрузка файла (защищено авторизацией)
+app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -96,7 +108,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Получение всех предприятий с фильтрами
+// Получение всех предприятий с фильтрами (временно БЕЗ авторизации для тестирования)
 app.get('/api/enterprises', async (req, res) => {
   try {
     const filters = {};
@@ -133,6 +145,7 @@ app.get('/api/enterprises', async (req, res) => {
     }
 
     const enterprises = await getAllEnterprises(filters);
+
     res.json({
       success: true,
       count: enterprises.length,
@@ -148,8 +161,8 @@ app.get('/api/enterprises', async (req, res) => {
   }
 });
 
-// Получение предприятия по ID
-app.get('/api/enterprises/:id', async (req, res) => {
+// Получение предприятия по ID (защищено авторизацией)
+app.get('/api/enterprises/:id', authMiddleware, async (req, res) => {
   try {
     const enterprise = await getEnterpriseById(req.params.id);
 
@@ -174,8 +187,8 @@ app.get('/api/enterprises/:id', async (req, res) => {
   }
 });
 
-// Получение статистики
-app.get('/api/statistics', async (req, res) => {
+// Получение статистики (защищено авторизацией)
+app.get('/api/statistics', authMiddleware, async (req, res) => {
   try {
     const stats = await getStatistics();
     res.json({
@@ -192,8 +205,8 @@ app.get('/api/statistics', async (req, res) => {
   }
 });
 
-// Очистка всех данных (для разработки)
-app.delete('/api/enterprises', async (req, res) => {
+// Очистка всех данных (защищено авторизацией)
+app.delete('/api/enterprises', authMiddleware, async (req, res) => {
   try {
     await clearAllEnterprises();
     res.json({
@@ -231,4 +244,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-

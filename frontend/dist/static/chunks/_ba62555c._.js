@@ -19,7 +19,6 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
 const API_BASE_URL = ("TURBOPACK compile-time value", "http://localhost:4000/api") || 'http://localhost:4000/api';
-console.log('🔧 API_BASE_URL:', API_BASE_URL); // Для отладки
 // Функция для получения токена из куки
 function getAuthToken() {
     if (typeof document === 'undefined') return null;
@@ -86,12 +85,10 @@ const getEnterprises = async (filters)=>{
         params.append('maxRevenue', filters.maxRevenue.toString());
     }
     const url = "".concat(API_BASE_URL, "/enterprises").concat(params.toString() ? '?' + params.toString() : '');
-    console.log('🔍 Requesting URL:', url); // Отладка
     const response = await fetch(url, {
         headers: getHeaders(),
         credentials: 'include'
     });
-    console.log('📡 Response status:', response.status, response.statusText); // Отладка
     if (!response.ok) {
         throw new Error("Ошибка получения данных: ".concat(response.statusText));
     }

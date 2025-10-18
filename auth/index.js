@@ -21,10 +21,13 @@ app.get('/', (req, res) => {
 
 const start = async () => {
     try {
-        await mongoose.connect(`mongodb+srv://calcifer_db_user:HNavHBZiD9gaDRhg@cluster0.xfoxsu1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`, {
+        const MONGODB_URI = process.env.MONGODB_URI || `mongodb+srv://calcifer_db_user:HNavHBZiD9gaDRhg@cluster0.xfoxsu1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+        await mongoose.connect(MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         })
+        console.log('MongoDB connected successfully')
         app.listen(PORT, () => console.log(`server started on port ${PORT}`))
     } catch (e) {
         console.log(e)

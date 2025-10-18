@@ -10,6 +10,8 @@ export interface Enterprise {
   registrationDate: Date;
   lastUpdated: Date;
   status: 'active' | 'inactive' | 'suspended';
+  latitude?: number | null; // широта для отображения на карте
+  longitude?: number | null; // долгота для отображения на карте
   contactInfo: {
     address: string;
     phone?: string;
