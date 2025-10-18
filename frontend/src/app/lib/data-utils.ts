@@ -206,8 +206,22 @@ export const formatNumber = (num: number): string => {
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
-    currency: 'RUB'
+    currency: 'RUB',
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0
   }).format(amount);
+};
+
+// Компактное форматирование валюты для карточек (без пробелов, с сокращениями)
+export const formatCurrencyCompact = (amount: number): string => {
+  if (amount >= 1_000_000_000) {
+    return `${(amount / 1_000_000_000).toFixed(1)}млрд₽`;
+  } else if (amount >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(1)}млн₽`;
+  } else if (amount >= 1_000) {
+    return `${(amount / 1_000).toFixed(0)}тыс₽`;
+  }
+  return `${amount}₽`;
 };
 
 // Генерация случайных данных для демонстрации

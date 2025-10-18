@@ -18,12 +18,43 @@ __turbopack_context__.s([
     ()=>uploadFile
 ]);
 const API_BASE_URL = ("TURBOPACK compile-time value", "http://localhost:4000/api") || 'http://localhost:4000/api';
+console.log('🔧 API_BASE_URL:', API_BASE_URL); // Для отладки
+// Функция для получения токена из куки
+function getAuthToken() {
+    if (typeof document === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies){
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'token' || name === 'auth_token') {
+            return value;
+        }
+    }
+    return null;
+}
+// Функция для создания headers с авторизацией
+function getHeaders() {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    const token = getAuthToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
 const uploadFile = async (file)=>{
     const formData = new FormData();
     formData.append('file', file);
+    const token = getAuthToken();
+    const headers = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
     const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers,
+        credentials: 'include'
     });
     if (!response.ok) {
         throw new Error(`Ошибка загрузки: ${response.statusText}`);
@@ -54,21 +85,32 @@ const getEnterprises = async (filters)=>{
         params.append('maxRevenue', filters.maxRevenue.toString());
     }
     const url = `${API_BASE_URL}/enterprises${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await fetch(url);
+    console.log('🔍 Requesting URL:', url); // Отладка
+    const response = await fetch(url, {
+        headers: getHeaders(),
+        credentials: 'include'
+    });
+    console.log('📡 Response status:', response.status, response.statusText); // Отладка
     if (!response.ok) {
         throw new Error(`Ошибка получения данных: ${response.statusText}`);
     }
     return response.json();
 };
 const getEnterpriseById = async (id)=>{
-    const response = await fetch(`${API_BASE_URL}/enterprises/${id}`);
+    const response = await fetch(`${API_BASE_URL}/enterprises/${id}`, {
+        headers: getHeaders(),
+        credentials: 'include'
+    });
     if (!response.ok) {
         throw new Error(`Ошибка получения данных: ${response.statusText}`);
     }
     return response.json();
 };
 const getStatistics = async ()=>{
-    const response = await fetch(`${API_BASE_URL}/statistics`);
+    const response = await fetch(`${API_BASE_URL}/statistics`, {
+        headers: getHeaders(),
+        credentials: 'include'
+    });
     if (!response.ok) {
         throw new Error(`Ошибка получения статистики: ${response.statusText}`);
     }

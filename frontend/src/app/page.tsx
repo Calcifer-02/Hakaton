@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Building2, Users, TrendingUp, AlertCircle, Upload, BarChart } from 'lucide-react';
 import Link from 'next/link';
 import { Enterprise } from './types/enterprise';
-import { formatNumber, formatCurrency } from './lib/data-utils';
+import { formatNumber, formatCurrency, formatCurrencyCompact } from './lib/data-utils';
 import { calculateOverallStats, calculateIndustryStats, calculateRegionStats, calculateDataQuality } from './lib/analytics';
 import { getEnterprises } from './lib/api-client';
 
@@ -136,7 +136,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Общая выручка</p>
-              <p className="text-3xl font-bold text-gray-900">{formatCurrency(overallStats.totalRevenue)}</p>
+              <p className="text-3xl font-bold text-gray-900">{formatCurrencyCompact(overallStats.totalRevenue)}</p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
               <TrendingUp className="w-6 h-6 text-green-600" />
@@ -144,7 +144,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-4">
             <span className="text-gray-600 text-sm">
-              Ср: {formatCurrency(overallStats.averageRevenue)}
+              Ср: {formatCurrencyCompact(overallStats.averageRevenue)}
             </span>
           </div>
         </div>

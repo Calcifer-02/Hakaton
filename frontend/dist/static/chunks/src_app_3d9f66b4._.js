@@ -9,6 +9,8 @@ __turbopack_context__.s([
     ()=>MOSCOW_REGIONS,
     "formatCurrency",
     ()=>formatCurrency,
+    "formatCurrencyCompact",
+    ()=>formatCurrencyCompact,
     "formatNumber",
     ()=>formatNumber,
     "generateSampleData",
@@ -206,8 +208,20 @@ const formatNumber = (num)=>{
 const formatCurrency = (amount)=>{
     return new Intl.NumberFormat('ru-RU', {
         style: 'currency',
-        currency: 'RUB'
+        currency: 'RUB',
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0
     }).format(amount);
+};
+const formatCurrencyCompact = (amount)=>{
+    if (amount >= 1_000_000_000) {
+        return "".concat((amount / 1_000_000_000).toFixed(1), "млрд₽");
+    } else if (amount >= 1_000_000) {
+        return "".concat((amount / 1_000_000).toFixed(1), "млн₽");
+    } else if (amount >= 1_000) {
+        return "".concat((amount / 1_000).toFixed(0), "тыс₽");
+    }
+    return "".concat(amount, "₽");
 };
 const generateSampleData = function() {
     let count = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : 100;
@@ -458,12 +472,43 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
 const API_BASE_URL = ("TURBOPACK compile-time value", "http://localhost:4000/api") || 'http://localhost:4000/api';
+console.log('🔧 API_BASE_URL:', API_BASE_URL); // Для отладки
+// Функция для получения токена из куки
+function getAuthToken() {
+    if (typeof document === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies){
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'token' || name === 'auth_token') {
+            return value;
+        }
+    }
+    return null;
+}
+// Функция для создания headers с авторизацией
+function getHeaders() {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    const token = getAuthToken();
+    if (token) {
+        headers['Authorization'] = "Bearer ".concat(token);
+    }
+    return headers;
+}
 const uploadFile = async (file)=>{
     const formData = new FormData();
     formData.append('file', file);
+    const token = getAuthToken();
+    const headers = {};
+    if (token) {
+        headers['Authorization'] = "Bearer ".concat(token);
+    }
     const response = await fetch("".concat(API_BASE_URL, "/upload"), {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers,
+        credentials: 'include'
     });
     if (!response.ok) {
         throw new Error("Ошибка загрузки: ".concat(response.statusText));
@@ -494,21 +539,32 @@ const getEnterprises = async (filters)=>{
         params.append('maxRevenue', filters.maxRevenue.toString());
     }
     const url = "".concat(API_BASE_URL, "/enterprises").concat(params.toString() ? '?' + params.toString() : '');
-    const response = await fetch(url);
+    console.log('🔍 Requesting URL:', url); // Отладка
+    const response = await fetch(url, {
+        headers: getHeaders(),
+        credentials: 'include'
+    });
+    console.log('📡 Response status:', response.status, response.statusText); // Отладка
     if (!response.ok) {
         throw new Error("Ошибка получения данных: ".concat(response.statusText));
     }
     return response.json();
 };
 const getEnterpriseById = async (id)=>{
-    const response = await fetch("".concat(API_BASE_URL, "/enterprises/").concat(id));
+    const response = await fetch("".concat(API_BASE_URL, "/enterprises/").concat(id), {
+        headers: getHeaders(),
+        credentials: 'include'
+    });
     if (!response.ok) {
         throw new Error("Ошибка получения данных: ".concat(response.statusText));
     }
     return response.json();
 };
 const getStatistics = async ()=>{
-    const response = await fetch("".concat(API_BASE_URL, "/statistics"));
+    const response = await fetch("".concat(API_BASE_URL, "/statistics"), {
+        headers: getHeaders(),
+        credentials: 'include'
+    });
     if (!response.ok) {
         throw new Error("Ошибка получения статистики: ".concat(response.statusText));
     }
@@ -887,7 +943,7 @@ function Dashboard() {
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                 className: "text-3xl font-bold text-gray-900",
-                                                children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatCurrency"])(overallStats.totalRevenue)
+                                                children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatCurrencyCompact"])(overallStats.totalRevenue)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/page.tsx",
                                                 lineNumber: 139,
@@ -925,7 +981,7 @@ function Dashboard() {
                                     className: "text-gray-600 text-sm",
                                     children: [
                                         "Ср: ",
-                                        (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatCurrency"])(overallStats.averageRevenue)
+                                        (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatCurrencyCompact"])(overallStats.averageRevenue)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/page.tsx",
