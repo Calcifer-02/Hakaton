@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { parseCSV, parseExcel } from '../lib/data-utils';
+import { uploadFile } from '../lib/api-client';
 import { UploadResult } from '../types/enterprise';
 
 export default function UploadPage() {
@@ -41,22 +41,8 @@ export default function UploadPage() {
     setUploadResult(null);
 
     try {
-      let result: UploadResult;
-
-      if (file.name.endsWith('.csv')) {
-        result = await parseCSV(file);
-      } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        result = await parseExcel(file);
-      } else {
-        result = {
-          success: false,
-          message: 'Неподдерживаемый формат файла. Поддерживаются только CSV и Excel файлы.',
-          processedCount: 0,
-          errorCount: 1,
-          errors: ['Неподдерживаемый формат файла']
-        };
-      }
-
+      // Отправляем файл на бэкенд
+      const result = await uploadFile(file);
       setUploadResult(result);
     } catch (error) {
       setUploadResult({

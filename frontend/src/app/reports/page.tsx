@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, FileText, Building2, TrendingUp, Users } from 'lucide-react';
+import { Download, FileText, Building2, TrendingUp, Users, AlertCircle, Upload as UploadIcon } from 'lucide-react';
+import Link from 'next/link';
 import { Enterprise } from '../types/enterprise';
-import { generateSampleData, formatNumber, formatCurrency, INDUSTRIES, MOSCOW_REGIONS } from '../lib/data-utils';
+import { formatNumber, formatCurrency, INDUSTRIES, MOSCOW_REGIONS } from '../lib/data-utils';
 import { calculateOverallStats, calculateIndustryStats, calculateRegionStats, filterEnterprises } from '../lib/analytics';
+import { getEnterprises } from '../lib/api-client';
+import { generateExcelReport, generatePDFReport } from '../lib/report-generator';
 
 interface ReportConfig {
   title: string;
@@ -26,11 +29,12 @@ interface ReportConfig {
 export default function ReportsPage() {
   const [enterprises, setEnterprises] = useState<Enterprise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
     title: 'Отчёт по предприятиям Москвы',
     dateRange: {
-      from: new Date(new Date().getFullYear() - 1, 0, 1),
+      from: new Date(2015, 0, 1), // С 2015 года, чтобы охватить все данные
       to: new Date()
     },
     includeIndustries: [],
@@ -45,9 +49,25 @@ export default function ReportsPage() {
   });
 
   useEffect(() => {
-    const sampleData = generateSampleData(500);
-    setEnterprises(sampleData);
-    setLoading(false);
+    // Загружаем данные из бэкенда
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const response = await getEnterprises();
+        if (response.success && response.data) {
+          setEnterprises(response.data);
+        } else {
+          setError('Не удалось загрузить данные');
+        }
+      } catch (err) {
+        setError(`Ошибка загрузки: ${(err as Error).message}`);
+        console.error('Ошибка загрузки данных:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
   const filteredEnterprises = filterEnterprises(enterprises, {
@@ -63,32 +83,41 @@ export default function ReportsPage() {
   const handleGenerateReport = async (format: 'pdf' | 'excel') => {
     setGeneratingReport(true);
 
-    // Имитация генерации отчёта
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Подготавливаем данные для отчета
+      const reportData = {
+        title: reportConfig.title,
+        period: {
+          from: reportConfig.dateRange.from.toLocaleDateString('ru-RU'),
+          to: reportConfig.dateRange.to.toLocaleDateString('ru-RU')
+        },
+        enterprises: filteredEnterprises,
+        stats: {
+          totalEnterprises: overallStats.totalEnterprises,
+          totalRevenue: overallStats.totalRevenue,
+          totalEmployees: overallStats.totalEmployees,
+          averageRevenue: overallStats.averageRevenue,
+          averageEmployees: overallStats.averageEmployees,
+        },
+        industryStats: reportConfig.sections.industries ? industryStats : undefined,
+        regionStats: reportConfig.sections.regions ? regionStats : undefined,
+      };
 
-    // Создаем blob с данными отчёта (для демонстрации)
-    const reportData = {
-      title: reportConfig.title,
-      generatedAt: new Date().toISOString(),
-      period: {
-        from: reportConfig.dateRange.from.toISOString(),
-        to: reportConfig.dateRange.to.toISOString()
-      },
-      stats: overallStats,
-      industries: industryStats,
-      regions: regionStats,
-      enterprises: filteredEnterprises.slice(0, 100) // Первые 100 для примера
-    };
+      // Генерируем отчет в нужном формате
+      if (format === 'excel') {
+        generateExcelReport(reportData);
+      } else {
+        generatePDFReport(reportData);
+      }
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `report_${format}_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    setGeneratingReport(false);
+      // Показываем уведомление об успехе (можно добавить toast notification)
+      console.log(`Отчет в формате ${format.toUpperCase()} успешно сгенерирован`);
+    } catch (error) {
+      console.error('Ошибка генерации отчета:', error);
+      alert(`Ошибка при генерации отчета: ${(error as Error).message}`);
+    } finally {
+      setGeneratingReport(false);
+    }
   };
 
   const updateReportConfig = (key: keyof ReportConfig, value: unknown) => {
@@ -111,7 +140,41 @@ export default function ReportsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Загрузка данных...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="text-lg text-gray-600 mt-4">Загрузка данных...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <div className="text-lg text-red-600">{error}</div>
+          <p className="text-gray-600 mt-2">Проверьте, что бэкенд запущен на порту 4000</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (enterprises.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <UploadIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <div className="text-lg text-gray-600">Нет данных для отчетов</div>
+          <p className="text-gray-500 mt-2">Загрузите файл с данными предприятий</p>
+          <Link
+            href="/upload"
+            className="mt-4 inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <UploadIcon className="w-5 h-5 mr-2" />
+            Загрузить данные
+          </Link>
+        </div>
       </div>
     );
   }

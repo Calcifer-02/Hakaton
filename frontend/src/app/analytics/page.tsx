@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Filter, Download, TrendingUp, BarChart3, PieChart as PieIcon } from 'lucide-react';
 import { Enterprise, AnalyticsFilters } from '../types/enterprise';
-import { generateSampleData, INDUSTRIES, MOSCOW_REGIONS, formatNumber, formatCurrency } from '../lib/data-utils';
+import { INDUSTRIES, MOSCOW_REGIONS, formatNumber, formatCurrency } from '../lib/data-utils';
 import { calculateIndustryStats, calculateRegionStats, calculateMonthlyTrends, filterEnterprises } from '../lib/analytics';
+import { getEnterprises } from '../lib/api-client';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#84CC16', '#EC4899', '#6366F1'];
 
@@ -17,11 +18,23 @@ export default function AnalyticsPage() {
   const [filters, setFilters] = useState<Partial<AnalyticsFilters>>({});
 
   useEffect(() => {
-    // Загружаем демонстрационные данные
-    const sampleData = generateSampleData(500);
-    setEnterprises(sampleData);
-    setFilteredEnterprises(sampleData);
-    setLoading(false);
+    // Загружаем данные из бэкенда
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const response = await getEnterprises();
+        if (response.success && response.data) {
+          setEnterprises(response.data);
+          setFilteredEnterprises(response.data);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
   useEffect(() => {

@@ -4,24 +4,75 @@ import { useEffect, useState } from 'react';
 import { Building2, Users, TrendingUp, AlertCircle, Upload, BarChart } from 'lucide-react';
 import Link from 'next/link';
 import { Enterprise } from './types/enterprise';
-import { generateSampleData, formatNumber, formatCurrency } from './lib/data-utils';
+import { formatNumber, formatCurrency } from './lib/data-utils';
 import { calculateOverallStats, calculateIndustryStats, calculateRegionStats, calculateDataQuality } from './lib/analytics';
+import { getEnterprises } from './lib/api-client';
 
 export default function Dashboard() {
   const [enterprises, setEnterprises] = useState<Enterprise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Загружаем демонстрационные данные
-    const sampleData = generateSampleData(500);
-    setEnterprises(sampleData);
-    setLoading(false);
+    // Загружаем данные из бэкенда
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const response = await getEnterprises();
+        if (response.success && response.data) {
+          setEnterprises(response.data);
+        } else {
+          setError('Не удалось загрузить данные');
+        }
+      } catch (err) {
+        setError(`Ошибка загрузки: ${(err as Error).message}`);
+        console.error('Ошибка загрузки данных:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-600">Загрузка данных...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="text-lg text-gray-600 mt-4">Загрузка данных...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <div className="text-lg text-red-600">{error}</div>
+          <p className="text-gray-600 mt-2">Проверьте, что бэкенд запущен на порту 4000</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (enterprises.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <div className="text-lg text-gray-600">Нет данных для отображения</div>
+          <p className="text-gray-500 mt-2">Загрузите файл с данными предприятий</p>
+          <Link
+            href="/upload"
+            className="mt-4 inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Upload className="w-5 h-5 mr-2" />
+            Загрузить данные
+          </Link>
+        </div>
       </div>
     );
   }
