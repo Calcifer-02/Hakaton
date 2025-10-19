@@ -155,6 +155,10 @@ function UploadPage() {
     const [isDragging, setIsDragging] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [uploadResult, setUploadResult] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
     const [isUploading, setIsUploading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
+    // Переменные для работы �� API2
+    const API2 = (("TURBOPACK compile-time value", "http://127.0.0.1:8000/api") || 'http://127.0.0.1:8000/api').replace(/\/$/, '');
+    const [api2File, setApi2File] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [api2Msg, setApi2Msg] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
     const handleDragOver = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])((e)=>{
         e.preventDefault();
         setIsDragging(true);
@@ -175,6 +179,32 @@ function UploadPage() {
         const files = e.target.files;
         if (files && files.length > 0) {
             handleFileUpload(files[0]);
+        }
+    };
+    // Загрузка напрямую в API2
+    const uploadToApi2 = async ()=>{
+        if (!api2File) {
+            setApi2Msg('Выберите файл');
+            return;
+        }
+        setApi2Msg('Загрузка...');
+        try {
+            const fd = new FormData();
+            fd.append('file', api2File);
+            // без credentials — чтобы не упереться в CORS
+            const res = await fetch(`${API2}/upload`, {
+                method: 'POST',
+                body: fd
+            });
+            if (!res.ok) {
+                const t = await res.text();
+                setApi2Msg(`Ошибка: ${res.status} ${t}`);
+                return;
+            }
+            const json = await res.json().catch(()=>({}));
+            setApi2Msg(`✔ API2: импортировано ${json.imported ?? json.count ?? 'ok'}`);
+        } catch (err) {
+            setApi2Msg(`Ошибка: ${err.message || String(err)}`);
         }
     };
     const handleFileUpload = async (file)=>{
@@ -211,7 +241,7 @@ function UploadPage() {
                         children: "Загрузка данных предприятий"
                     }, void 0, false, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 68,
+                        lineNumber: 97,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -219,13 +249,13 @@ function UploadPage() {
                         children: "Загрузите файл CSV или Excel с данными о предприятиях Москвы для анализа"
                     }, void 0, false, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 69,
+                        lineNumber: 98,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/upload/page.tsx",
-                lineNumber: 67,
+                lineNumber: 96,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -247,12 +277,12 @@ function UploadPage() {
                                     className: "w-8 h-8 text-gray-600"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 90,
+                                    lineNumber: 119,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 89,
+                                lineNumber: 118,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -262,7 +292,7 @@ function UploadPage() {
                                         children: "Перетащите файл сюда или выберите файл"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 94,
+                                        lineNumber: 123,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -270,13 +300,13 @@ function UploadPage() {
                                         children: "Поддерживаются форматы: CSV, Excel (XLSX, XLS)"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 97,
+                                        lineNumber: 126,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 93,
+                                lineNumber: 122,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -292,14 +322,14 @@ function UploadPage() {
                                                 className: "hidden"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 104,
+                                                lineNumber: 133,
                                                 columnNumber: 17
                                             }, this),
                                             "Выбрать файл"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 103,
+                                        lineNumber: 132,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -324,29 +354,29 @@ function UploadPage() {
                                         children: "Загрузить демо-данные"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 113,
+                                        lineNumber: 142,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 102,
+                                lineNumber: 131,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 88,
+                        lineNumber: 117,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/upload/page.tsx",
-                    lineNumber: 76,
+                    lineNumber: 105,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/upload/page.tsx",
-                lineNumber: 75,
+                lineNumber: 104,
                 columnNumber: 7
             }, this),
             isUploading && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -358,7 +388,7 @@ function UploadPage() {
                             className: "animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"
                         }, void 0, false, {
                             fileName: "[project]/src/app/upload/page.tsx",
-                            lineNumber: 144,
+                            lineNumber: 173,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -368,7 +398,7 @@ function UploadPage() {
                                     children: "Обработка файла..."
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 146,
+                                    lineNumber: 175,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -376,24 +406,24 @@ function UploadPage() {
                                     children: "Пожалуйста, подождите"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 147,
+                                    lineNumber: 176,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/upload/page.tsx",
-                            lineNumber: 145,
+                            lineNumber: 174,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/upload/page.tsx",
-                    lineNumber: 143,
+                    lineNumber: 172,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/upload/page.tsx",
-                lineNumber: 142,
+                lineNumber: 171,
                 columnNumber: 9
             }, this),
             uploadResult && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -412,13 +442,13 @@ function UploadPage() {
                                         className: "w-6 h-6 text-green-600 flex-shrink-0"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 165,
+                                        lineNumber: 194,
                                         columnNumber: 17
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$alert$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__AlertCircle$3e$__["AlertCircle"], {
                                         className: "w-6 h-6 text-red-600 flex-shrink-0"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 167,
+                                        lineNumber: 196,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -428,7 +458,7 @@ function UploadPage() {
                                                 children: uploadResult.success ? 'Загрузка завершена' : 'Ошибка загрузки'
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 170,
+                                                lineNumber: 199,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -436,19 +466,19 @@ function UploadPage() {
                                                 children: uploadResult.message
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 175,
+                                                lineNumber: 204,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 169,
+                                        lineNumber: 198,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 163,
+                                lineNumber: 192,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -458,18 +488,18 @@ function UploadPage() {
                                     className: "w-5 h-5"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 186,
+                                    lineNumber: 215,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 182,
+                                lineNumber: 211,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 162,
+                        lineNumber: 191,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -485,7 +515,7 @@ function UploadPage() {
                                             children: uploadResult.processedCount
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/upload/page.tsx",
-                                            lineNumber: 194,
+                                            lineNumber: 223,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -493,18 +523,18 @@ function UploadPage() {
                                             children: "Обработано записей"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/upload/page.tsx",
-                                            lineNumber: 195,
+                                            lineNumber: 224,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 193,
+                                    lineNumber: 222,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 192,
+                                lineNumber: 221,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -517,7 +547,7 @@ function UploadPage() {
                                             children: uploadResult.errorCount
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/upload/page.tsx",
-                                            lineNumber: 200,
+                                            lineNumber: 229,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -525,24 +555,24 @@ function UploadPage() {
                                             children: "Ошибок"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/upload/page.tsx",
-                                            lineNumber: 201,
+                                            lineNumber: 230,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 199,
+                                    lineNumber: 228,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 198,
+                                lineNumber: 227,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 191,
+                        lineNumber: 220,
                         columnNumber: 11
                     }, this),
                     uploadResult.errors.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -553,7 +583,7 @@ function UploadPage() {
                                 children: "Найденные ошибки:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 209,
+                                lineNumber: 238,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -568,7 +598,7 @@ function UploadPage() {
                                                         className: "w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 214,
+                                                        lineNumber: 243,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -576,13 +606,13 @@ function UploadPage() {
                                                         children: error
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 215,
+                                                        lineNumber: 244,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, index, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 213,
+                                                lineNumber: 242,
                                                 columnNumber: 21
                                             }, this)),
                                         uploadResult.errors.length > 10 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -594,31 +624,97 @@ function UploadPage() {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/upload/page.tsx",
-                                            lineNumber: 219,
+                                            lineNumber: 248,
                                             columnNumber: 21
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/upload/page.tsx",
-                                    lineNumber: 211,
+                                    lineNumber: 240,
                                     columnNumber: 17
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 210,
+                                lineNumber: 239,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 208,
+                        lineNumber: 237,
                         columnNumber: 13
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/upload/page.tsx",
-                lineNumber: 155,
+                lineNumber: 184,
                 columnNumber: 9
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "bg-white rounded-lg shadow-sm border p-6",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                        className: "text-xl font-semibold text-gray-900 mb-3",
+                        children: "Второй API (новый формат)"
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/upload/page.tsx",
+                        lineNumber: 261,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex flex-col sm:flex-row gap-4 items-center",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                type: "file",
+                                accept: ".csv,.xlsx,.xls",
+                                onChange: (e)=>setApi2File(e.target.files?.[0] || null),
+                                className: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/upload/page.tsx",
+                                lineNumber: 265,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                className: "bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap",
+                                onClick: uploadToApi2,
+                                disabled: !api2File,
+                                children: "Загрузить в API2"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/upload/page.tsx",
+                                lineNumber: 271,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/upload/page.tsx",
+                        lineNumber: 264,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-xs text-gray-500 mt-2",
+                        children: [
+                            "Отправка на: ",
+                            API2,
+                            "/upload"
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/upload/page.tsx",
+                        lineNumber: 279,
+                        columnNumber: 9
+                    }, this),
+                    api2Msg && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: `mt-3 p-3 rounded-lg text-sm ${api2Msg.includes('✔') ? 'bg-green-50 text-green-800 border border-green-200' : api2Msg.includes('Ошибка') ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50 text-blue-800 border border-blue-200'}`,
+                        children: api2Msg
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/upload/page.tsx",
+                        lineNumber: 281,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/upload/page.tsx",
+                lineNumber: 260,
+                columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "bg-gray-50 rounded-lg p-6",
@@ -628,7 +724,7 @@ function UploadPage() {
                         children: "Формат данных"
                     }, void 0, false, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 232,
+                        lineNumber: 295,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -639,7 +735,7 @@ function UploadPage() {
                                 children: "Файл должен содержать следующие столбцы:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 234,
+                                lineNumber: 297,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -655,7 +751,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 240,
+                                                        lineNumber: 303,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -663,14 +759,14 @@ function UploadPage() {
                                                         children: "name"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 241,
+                                                        lineNumber: 304,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Название предприятия"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 239,
+                                                lineNumber: 302,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -680,7 +776,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 244,
+                                                        lineNumber: 307,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -688,14 +784,14 @@ function UploadPage() {
                                                         children: "industry"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 245,
+                                                        lineNumber: 308,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Отрасль"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 243,
+                                                lineNumber: 306,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -705,7 +801,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 248,
+                                                        lineNumber: 311,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -713,14 +809,14 @@ function UploadPage() {
                                                         children: "region"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 249,
+                                                        lineNumber: 312,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Регион Москвы"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 247,
+                                                lineNumber: 310,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -730,7 +826,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 252,
+                                                        lineNumber: 315,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -738,20 +834,20 @@ function UploadPage() {
                                                         children: "employees"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 253,
+                                                        lineNumber: 316,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Количество сотрудников"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 251,
+                                                lineNumber: 314,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 238,
+                                        lineNumber: 301,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -764,7 +860,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 258,
+                                                        lineNumber: 321,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -772,14 +868,14 @@ function UploadPage() {
                                                         children: "revenue"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 259,
+                                                        lineNumber: 322,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Выручка (руб.)"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 257,
+                                                lineNumber: 320,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -789,7 +885,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 262,
+                                                        lineNumber: 325,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -797,14 +893,14 @@ function UploadPage() {
                                                         children: "address"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 263,
+                                                        lineNumber: 326,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Адрес"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 261,
+                                                lineNumber: 324,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -814,7 +910,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 266,
+                                                        lineNumber: 329,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -822,14 +918,14 @@ function UploadPage() {
                                                         children: "phone"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 267,
+                                                        lineNumber: 330,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Телефон (опционально)"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 265,
+                                                lineNumber: 328,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -839,7 +935,7 @@ function UploadPage() {
                                                         className: "w-4 h-4 text-blue-600"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 270,
+                                                        lineNumber: 333,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -847,44 +943,44 @@ function UploadPage() {
                                                         children: "email"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/upload/page.tsx",
-                                                        lineNumber: 271,
+                                                        lineNumber: 334,
                                                         columnNumber: 17
                                                     }, this),
                                                     " - Email (опционально)"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/upload/page.tsx",
-                                                lineNumber: 269,
+                                                lineNumber: 332,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/upload/page.tsx",
-                                        lineNumber: 256,
+                                        lineNumber: 319,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/upload/page.tsx",
-                                lineNumber: 237,
+                                lineNumber: 300,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/upload/page.tsx",
-                        lineNumber: 233,
+                        lineNumber: 296,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/upload/page.tsx",
-                lineNumber: 231,
+                lineNumber: 294,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/upload/page.tsx",
-        lineNumber: 65,
+        lineNumber: 94,
         columnNumber: 5
     }, this);
 }

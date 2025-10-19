@@ -50,8 +50,8 @@ app.get('/api/auth/validate', authMiddleware, (req, res) => {
   });
 });
 
-// Загрузка файла (защищено авторизацией)
-app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) => {
+// Загрузка файла
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -62,6 +62,8 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
 
     const fileExtension = path.extname(req.file.originalname).toLowerCase();
     let parseResult;
+
+    console.log(`🔄 Обрабатываем файл: ${req.file.originalname} (размер: ${req.file.size} байт)`);
 
     // Парсим файл в зависимости от формата
     if (fileExtension === '.csv') {
@@ -75,29 +77,50 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
       });
     }
 
+    if (!parseResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: parseResult.message,
+        errors: parseResult.errors
+      });
+    }
+
     // Сохраняем данные в базу
     let savedCount = 0;
     const saveErrors = [];
+
+    console.log(`💾 Сохраняем ${parseResult.data.length} предприятий в базу данных...`);
 
     for (const enterprise of parseResult.data) {
       try {
         await addEnterprise(enterprise);
         savedCount++;
       } catch (error) {
-        saveErrors.push(`Ошибка сохранения: ${enterprise.name}`);
+        console.error(`Ошибка сохранения предприятия "${enterprise.name}":`, error.message);
+        saveErrors.push(`Ошибка сохранения: ${enterprise.name} - ${error.message}`);
       }
     }
 
-    res.json({
+    const response = {
       success: true,
       message: `Успешно загружено ${savedCount} предприятий`,
       processedCount: savedCount,
+      totalParsed: parseResult.processedCount,
       errorCount: parseResult.errorCount + saveErrors.length,
-      errors: [...parseResult.errors, ...saveErrors].slice(0, 10)
-    });
+      errors: [...(parseResult.errors || []), ...saveErrors].slice(0, 10),
+      stats: {
+        fileSize: req.file.size,
+        fileName: req.file.originalname,
+        processingMethod: 'Стандартный парсинг'
+      }
+    };
+
+    console.log(`✅ Обработка завершена: ${savedCount}/${parseResult.processedCount} предприятий сохранено`);
+
+    res.json(response);
 
   } catch (error) {
-    console.error('Ошибка загрузки файла:', error);
+    console.error('❌ Критическая ошибка загрузки файла:', error);
     res.status(500).json({
       success: false,
       message: `Ошибка обработки файла: ${error.message}`,
@@ -205,8 +228,8 @@ app.get('/api/statistics', authMiddleware, async (req, res) => {
   }
 });
 
-// Очистка всех данных (защищено авторизацией)
-app.delete('/api/enterprises', authMiddleware, async (req, res) => {
+// Очистка всех данных (временно без авторизации для разработки)
+app.delete('/api/enterprises', async (req, res) => {
   try {
     await clearAllEnterprises();
     res.json({
@@ -221,6 +244,28 @@ app.delete('/api/enterprises', authMiddleware, async (req, res) => {
       message: `Ошибка очистки данных: ${error.message}`
     });
   }
+});
+
+// Получение информации о поддерживаемых форматах
+app.get('/api/parser/info', (req, res) => {
+  const { INDUSTRIES, MOSCOW_REGIONS } = require('./utils/fileParser');
+
+  res.json({
+    success: true,
+    data: {
+      supportedFormats: ['csv', 'xlsx', 'xls'],
+      aiEnabled: false,
+      supportedIndustries: INDUSTRIES,
+      supportedRegions: MOSCOW_REGIONS,
+      maxFileSize: '50MB',
+      features: [
+        'Автоопределение кодировки',
+        'Умный парсинг CSV/Excel',
+        'Валидация и очистка данных',
+        'Стандартизация отраслей и регионов'
+      ]
+    }
+  });
 });
 
 // Обработка ошибок

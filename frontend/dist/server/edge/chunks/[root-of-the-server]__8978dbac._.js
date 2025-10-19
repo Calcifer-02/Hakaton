@@ -42,7 +42,7 @@ const ASSET_PREFIXES = [
     '/window.svg'
 ];
 const API_BASE_URL = process.env.API_BASE_URL || 'http://backend:4000';
-const AUTH_LOGIN_URL = ("TURBOPACK compile-time value", "http://localhost:5000") || 'http://localhost:5000';
+const AUTH_LOGIN_URL = ("TURBOPACK compile-time value", "/login") || 'http://localhost:5000';
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH !== 'false';
 function isPublicPath(pathname) {
     // Проверяем статические ресурсы

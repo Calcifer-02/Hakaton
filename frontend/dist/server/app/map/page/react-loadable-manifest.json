@@ -1,11 +1,11 @@
 {
-  "[project]/src/app/map/MapView.tsx [app-client] (ecmascript, next/dynamic entry)": {
-    "id": "[project]/src/app/map/MapView.tsx [app-client] (ecmascript, next/dynamic entry)",
+  "[project]/frontend/src/app/map/MapView.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/frontend/src/app/map/MapView.tsx [app-client] (ecmascript, next/dynamic entry)",
     "files": [
-      "static/chunks/node_modules_11cd6a26._.js",
-      "static/chunks/src_app_map_MapView_tsx_b3766bb0._.js",
-      "static/chunks/node_modules_leaflet_dist_leaflet_ef5f0413.css",
-      "static/chunks/src_app_map_MapView_tsx_5d9970a4._.js"
+      "static/chunks/9e883_02ed7074._.js",
+      "static/chunks/frontend_src_app_map_MapView_tsx_4f15f961._.js",
+      "static/chunks/9e883_leaflet_dist_leaflet_51b5388e.css",
+      "static/chunks/frontend_src_app_map_MapView_tsx_f7ca208a._.js"
     ]
   }
 }

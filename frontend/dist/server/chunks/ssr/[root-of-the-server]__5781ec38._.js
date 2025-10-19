@@ -56,6 +56,8 @@ const INDUSTRIES = [
     'Фармацевтика',
     'Автомобилестроение',
     'Полиграфия',
+    'Информационные технологии',
+    'Сельское хозяйство',
     'Другое'
 ];
 const validateEnterprise = (data)=>{
@@ -454,7 +456,6 @@ __turbopack_context__.s([
     ()=>uploadFile
 ]);
 const API_BASE_URL = ("TURBOPACK compile-time value", "http://localhost:4000/api") || 'http://localhost:4000/api';
-console.log('🔧 API_BASE_URL:', API_BASE_URL); // Для отладки
 // Функция для получения токена из куки
 function getAuthToken() {
     if (typeof document === 'undefined') return null;
@@ -521,12 +522,10 @@ const getEnterprises = async (filters)=>{
         params.append('maxRevenue', filters.maxRevenue.toString());
     }
     const url = `${API_BASE_URL}/enterprises${params.toString() ? '?' + params.toString() : ''}`;
-    console.log('🔍 Requesting URL:', url); // Отладка
     const response = await fetch(url, {
         headers: getHeaders(),
         credentials: 'include'
     });
-    console.log('📡 Response status:', response.status, response.statusText); // Отладка
     if (!response.ok) {
         throw new Error(`Ошибка получения данных: ${response.statusText}`);
     }
@@ -582,8 +581,12 @@ module.exports = mod;
 __turbopack_context__.s([
     "generateExcelReport",
     ()=>generateExcelReport,
+    "generateHTMLReport",
+    ()=>generateHTMLReport,
     "generatePDFReport",
-    ()=>generatePDFReport
+    ()=>generatePDFReport,
+    "generateSimplePDFReport",
+    ()=>generateSimplePDFReport
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/xlsx/xlsx.mjs [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2f$dist$2f$jspdf$2e$es$2e$min$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/jspdf/dist/jspdf.es.min.js [app-ssr] (ecmascript)");
@@ -591,6 +594,36 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2d$aut
 ;
 ;
 ;
+// Динамический импорт pdfMake только когда он нужен
+let pdfMake = null;
+// Асинхронная инициализация pdfMake с улучшенной обработкой ошибок
+const initializePdfMake = async ()=>{
+    if (!pdfMake) {
+        try {
+            const pdfMakeModule = await __turbopack_context__.A("[project]/node_modules/pdfmake/build/pdfmake.js [app-ssr] (ecmascript, async loader)");
+            const pdfFontsModule = await __turbopack_context__.A("[project]/node_modules/pdfmake/build/vfs_fonts.js [app-ssr] (ecmascript, async loader)");
+            pdfMake = pdfMakeModule.default || pdfMakeModule;
+            // Проверяем различные способы доступа к шрифтам
+            if (pdfFontsModule.default?.pdfMake?.vfs) {
+                pdfMake.vfs = pdfFontsModule.default.pdfMake.vfs;
+            } else if (pdfFontsModule.pdfMake?.vfs) {
+                pdfMake.vfs = pdfFontsModule.pdfMake.vfs;
+            } else if (pdfFontsModule.vfs) {
+                pdfMake.vfs = pdfFontsModule.vfs;
+            } else {
+                console.warn('Не удалось найти шрифты pdfMake, используем стандартные');
+                // Создаем пустой объект vfs для базовой работы
+                pdfMake.vfs = {};
+            }
+            console.log('pdfMake успешно инициализирован');
+        } catch (error) {
+            console.error('Ошибка инициализации pdfMake:', error);
+            pdfMake = null;
+            throw error;
+        }
+    }
+    return pdfMake;
+};
 // Форматирование валюты для отчетов
 const formatCurrencyForExport = (value)=>{
     return new Intl.NumberFormat('ru-RU', {
@@ -609,7 +642,10 @@ const generateExcelReport = (reportData)=>{
     // Лист 1: Общая информация
     const summaryData = [
         [
-            'Отчёт по предприятиям Москвы'
+            'ОТЧЁТ ПО ПРЕДПРИЯТИЯМ МОСКВЫ'
+        ],
+        [
+            ''
         ],
         [
             'Название отчёта:',
@@ -623,9 +659,11 @@ const generateExcelReport = (reportData)=>{
             'Период:',
             `${reportData.period.from} - ${reportData.period.to}`
         ],
-        [],
         [
-            'Общая статистика'
+            ''
+        ],
+        [
+            'ОБЩАЯ СТАТИСТИКА'
         ],
         [
             'Всего предприятий:',
@@ -649,6 +687,28 @@ const generateExcelReport = (reportData)=>{
         ]
     ];
     const summarySheet = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["utils"].aoa_to_sheet(summaryData);
+    // Применяем стили к заголовкам
+    if (!summarySheet['!merges']) summarySheet['!merges'] = [];
+    summarySheet['!merges'].push({
+        s: {
+            r: 0,
+            c: 0
+        },
+        e: {
+            r: 0,
+            c: 1
+        }
+    }, {
+        s: {
+            r: 6,
+            c: 0
+        },
+        e: {
+            r: 6,
+            c: 1
+        }
+    } // Объединяем ячейки для "ОБЩАЯ СТАТИСТИКА"
+    );
     __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["utils"].book_append_sheet(workbook, summarySheet, 'Общая информация');
     // Лист 2: Предприятия
     if (reportData.enterprises.length > 0) {
@@ -659,10 +719,12 @@ const generateExcelReport = (reportData)=>{
                 'Сотрудники': e.employees,
                 'Выручка (руб.)': e.revenue,
                 'Налоги (руб.)': e.taxesPaid,
+                'Дата регистрации': e.registrationDate,
                 'Статус': e.status === 'active' ? 'Активно' : e.status === 'inactive' ? 'Неактивно' : 'Приостановлено',
                 'Адрес': e.contactInfo.address,
                 'Телефон': e.contactInfo.phone || '-',
-                'Email': e.contactInfo.email || '-'
+                'Email': e.contactInfo.email || '-',
+                'Координаты': e.latitude && e.longitude ? `${e.latitude}, ${e.longitude}` : '-'
             }));
         const enterprisesSheet = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["utils"].json_to_sheet(enterprisesData);
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["utils"].book_append_sheet(workbook, enterprisesSheet, 'Предприятия');
@@ -689,163 +751,910 @@ const generateExcelReport = (reportData)=>{
         const regionSheet = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["utils"].json_to_sheet(regionData);
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["utils"].book_append_sheet(workbook, regionSheet, 'По регионам');
     }
-    // Сохранение файла
-    const fileName = `report_${Date.now()}.xlsx`;
+    // Сохранение файла с русским названием
+    const fileName = `Отчёт_предприятия_Москвы_${new Date().toISOString().split('T')[0]}.xlsx`;
     __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$xlsx$2f$xlsx$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["writeFile"](workbook, fileName);
+    return fileName;
 };
-const generatePDFReport = (reportData)=>{
-    const doc = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2f$dist$2f$jspdf$2e$es$2e$min$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]();
-    // Используем базовый шрифт с поддержкой юникода
-    doc.setFont('helvetica');
-    // Заголовок
-    doc.setFontSize(18);
-    doc.text('Отчёт по предприятиям Москвы', 14, 15);
-    doc.setFontSize(12);
-    doc.text(`Название: ${reportData.title}`, 14, 25);
-    doc.text(`Дата создания: ${new Date().toLocaleDateString('ru-RU')}`, 14, 32);
-    doc.text(`Период: ${reportData.period.from} - ${reportData.period.to}`, 14, 39);
-    // Общая статистика
-    doc.setFontSize(14);
-    doc.text('Общая статистика', 14, 50);
-    doc.setFontSize(11);
-    doc.text(`Всего предприятий: ${reportData.stats.totalEnterprises}`, 14, 58);
-    doc.text(`Общая выручка: ${formatCurrencyForExport(reportData.stats.totalRevenue)}`, 14, 65);
-    doc.text(`Всего сотрудников: ${formatNumberForExport(reportData.stats.totalEmployees)}`, 14, 72);
-    doc.text(`Средняя выручка: ${formatCurrencyForExport(reportData.stats.averageRevenue)}`, 14, 79);
-    doc.text(`Средняя численность: ${formatNumberForExport(Math.round(reportData.stats.averageEmployees))}`, 14, 86);
-    let yPos = 95;
-    // Статистика по отраслям
-    if (reportData.industryStats && reportData.industryStats.length > 0) {
-        doc.setFontSize(14);
-        doc.text('Статистика по отраслям', 14, yPos);
-        yPos += 10;
-        const industryTableData = reportData.industryStats.map((i)=>[
-                i.industry,
-                i.count.toString(),
-                formatCurrencyForExport(i.totalRevenue),
-                i.averageEmployees.toString()
-            ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2d$autotable$2f$dist$2f$jspdf$2e$plugin$2e$autotable$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])(doc, {
-            startY: yPos,
-            head: [
-                [
-                    'Отрасль',
-                    'Кол-во',
-                    'Выручка',
-                    'Сред. численность'
-                ]
-            ],
-            body: industryTableData,
-            theme: 'grid',
-            styles: {
-                fontSize: 9,
-                font: 'helvetica'
-            },
-            headStyles: {
-                fillColor: [
-                    59,
-                    130,
-                    246
-                ],
-                font: 'helvetica',
-                fontStyle: 'bold'
-            }
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        yPos = doc.lastAutoTable.finalY + 10;
-    }
-    // Статистика по регионам
-    if (reportData.regionStats && reportData.regionStats.length > 0) {
-        if (yPos > 250) {
-            doc.addPage();
-            yPos = 15;
+const generatePDFReport = async (reportData)=>{
+    try {
+        console.log('Начинаем генерацию PDF отчета...');
+        // Инициализируем pdfMake асинхронно
+        const pdf = await initializePdfMake();
+        if (!pdf) {
+            console.log('pdfMake не доступен, переключаемся на jsPDF');
+            return generateSimplePDFReport(reportData);
         }
-        doc.setFontSize(14);
-        doc.text('Статистика по регионам', 14, yPos);
-        yPos += 10;
-        const regionTableData = reportData.regionStats.map((r)=>[
-                r.region,
-                r.count.toString(),
-                formatCurrencyForExport(r.totalRevenue),
-                r.averageEmployees.toString()
-            ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2d$autotable$2f$dist$2f$jspdf$2e$plugin$2e$autotable$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])(doc, {
-            startY: yPos,
-            head: [
-                [
-                    'Регион',
-                    'Кол-во',
-                    'Выручка',
-                    'Сред. численность'
-                ]
+        console.log('Создаем структуру документа...');
+        // Определяем документ с поддержкой русского языка
+        const docDefinition = {
+            pageSize: 'A4',
+            pageMargins: [
+                40,
+                60,
+                40,
+                60
             ],
-            body: regionTableData,
-            theme: 'grid',
+            content: [
+                // Заголовок
+                {
+                    text: 'ОТЧЁТ ПО ПРЕДПРИЯТИЯМ МОСКВЫ',
+                    style: 'header',
+                    alignment: 'center',
+                    margin: [
+                        0,
+                        0,
+                        0,
+                        20
+                    ]
+                },
+                // Информация о отчете
+                {
+                    columns: [
+                        {
+                            width: '50%',
+                            stack: [
+                                {
+                                    text: `Название: ${reportData.title}`,
+                                    style: 'subheader'
+                                },
+                                {
+                                    text: `Дата создания: ${new Date().toLocaleDateString('ru-RU')}`,
+                                    style: 'normal'
+                                },
+                                {
+                                    text: `Период: ${reportData.period.from} - ${reportData.period.to}`,
+                                    style: 'normal'
+                                }
+                            ]
+                        },
+                        {
+                            width: '50%',
+                            stack: [
+                                {
+                                    text: 'Общая статистика',
+                                    style: 'subheader'
+                                },
+                                {
+                                    text: `Всего предприятий: ${formatNumberForExport(reportData.stats.totalEnterprises)}`,
+                                    style: 'normal'
+                                },
+                                {
+                                    text: `Общая выручка: ${formatCurrencyForExport(reportData.stats.totalRevenue)}`,
+                                    style: 'normal'
+                                }
+                            ]
+                        }
+                    ],
+                    margin: [
+                        0,
+                        0,
+                        0,
+                        20
+                    ]
+                },
+                // Дополнительная статистика
+                {
+                    columns: [
+                        {
+                            width: '50%',
+                            text: `Всего сотрудников: ${formatNumberForExport(reportData.stats.totalEmployees)}`,
+                            style: 'normal'
+                        },
+                        {
+                            width: '50%',
+                            text: `Средняя выручка: ${formatCurrencyForExport(reportData.stats.averageRevenue)}`,
+                            style: 'normal'
+                        }
+                    ],
+                    margin: [
+                        0,
+                        0,
+                        0,
+                        30
+                    ]
+                }
+            ],
             styles: {
-                fontSize: 9,
-                font: 'helvetica'
-            },
-            headStyles: {
-                fillColor: [
-                    16,
-                    185,
-                    129
-                ],
-                font: 'helvetica',
-                fontStyle: 'bold'
+                header: {
+                    fontSize: 18,
+                    bold: true,
+                    color: '#1f2937'
+                },
+                subheader: {
+                    fontSize: 14,
+                    bold: true,
+                    color: '#3b82f6',
+                    margin: [
+                        0,
+                        10,
+                        0,
+                        5
+                    ]
+                },
+                normal: {
+                    fontSize: 11,
+                    margin: [
+                        0,
+                        2,
+                        0,
+                        2
+                    ]
+                },
+                tableHeader: {
+                    bold: true,
+                    fontSize: 10,
+                    color: 'white',
+                    fillColor: '#3b82f6'
+                },
+                tableBody: {
+                    fontSize: 9
+                }
             }
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        yPos = doc.lastAutoTable.finalY + 10;
-    }
-    // Топ 10 предприятий
-    if (reportData.enterprises.length > 0) {
-        if (yPos > 220) {
-            doc.addPage();
-            yPos = 15;
+        };
+        // Добавляем статистику по отраслям
+        if (reportData.industryStats && reportData.industryStats.length > 0) {
+            docDefinition.content.push({
+                text: 'Статистика по отраслям',
+                style: 'subheader',
+                pageBreak: 'before'
+            }, {
+                table: {
+                    headerRows: 1,
+                    widths: [
+                        '30%',
+                        '20%',
+                        '30%',
+                        '20%'
+                    ],
+                    body: [
+                        [
+                            {
+                                text: 'Отрасль',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Количество',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Общая выручка',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Средняя численность',
+                                style: 'tableHeader'
+                            }
+                        ],
+                        ...reportData.industryStats.map((industry)=>[
+                                {
+                                    text: industry.industry,
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatNumberForExport(industry.count),
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatCurrencyForExport(industry.totalRevenue),
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatNumberForExport(Math.round(industry.averageEmployees)),
+                                    style: 'tableBody'
+                                }
+                            ])
+                    ]
+                },
+                layout: {
+                    fillColor: (rowIndex)=>rowIndex === 0 ? '#3b82f6' : rowIndex % 2 === 0 ? '#f8f9fa' : null,
+                    hLineColor: '#e5e7eb',
+                    vLineColor: '#e5e7eb'
+                },
+                margin: [
+                    0,
+                    10,
+                    0,
+                    20
+                ]
+            });
         }
-        doc.setFontSize(14);
-        doc.text('Топ 10 предприятий по выручке', 14, yPos);
-        yPos += 10;
-        const topEnterprises = [
-            ...reportData.enterprises
-        ].sort((a, b)=>b.revenue - a.revenue).slice(0, 10);
-        const enterprisesTableData = topEnterprises.map((e)=>[
-                e.name,
-                e.industry,
-                e.employees.toString(),
-                formatCurrencyForExport(e.revenue)
-            ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2d$autotable$2f$dist$2f$jspdf$2e$plugin$2e$autotable$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])(doc, {
-            startY: yPos,
-            head: [
-                [
-                    'Название',
-                    'Отрасль',
-                    'Сотрудники',
-                    'Выручка'
+        // Добавляем статистику по регионам
+        if (reportData.regionStats && reportData.regionStats.length > 0) {
+            docDefinition.content.push({
+                text: 'Статистика по регионам',
+                style: 'subheader'
+            }, {
+                table: {
+                    headerRows: 1,
+                    widths: [
+                        '30%',
+                        '20%',
+                        '30%',
+                        '20%'
+                    ],
+                    body: [
+                        [
+                            {
+                                text: 'Регион',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Количество',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Общая выручка',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Средняя численность',
+                                style: 'tableHeader'
+                            }
+                        ],
+                        ...reportData.regionStats.map((region)=>[
+                                {
+                                    text: region.region,
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatNumberForExport(region.count),
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatCurrencyForExport(region.totalRevenue),
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatNumberForExport(Math.round(region.averageEmployees)),
+                                    style: 'tableBody'
+                                }
+                            ])
+                    ]
+                },
+                layout: {
+                    fillColor: (rowIndex)=>rowIndex === 0 ? '#10b981' : rowIndex % 2 === 0 ? '#f0fdf4' : null,
+                    hLineColor: '#e5e7eb',
+                    vLineColor: '#e5e7eb'
+                },
+                margin: [
+                    0,
+                    10,
+                    0,
+                    20
                 ]
-            ],
-            body: enterprisesTableData,
-            theme: 'grid',
-            styles: {
-                fontSize: 8,
-                font: 'helvetica'
-            },
-            headStyles: {
-                fillColor: [
-                    139,
-                    92,
-                    246
-                ],
-                font: 'helvetica',
-                fontStyle: 'bold'
-            }
-        });
+            });
+        }
+        // Добавляем топ предприятий
+        if (reportData.enterprises.length > 0) {
+            const topEnterprises = [
+                ...reportData.enterprises
+            ].sort((a, b)=>b.revenue - a.revenue).slice(0, 10);
+            docDefinition.content.push({
+                text: 'Топ 10 предприятий по выручке',
+                style: 'subheader'
+            }, {
+                table: {
+                    headerRows: 1,
+                    widths: [
+                        '35%',
+                        '25%',
+                        '15%',
+                        '25%'
+                    ],
+                    body: [
+                        [
+                            {
+                                text: 'Название',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Отрасль',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Сотрудники',
+                                style: 'tableHeader'
+                            },
+                            {
+                                text: 'Выручка',
+                                style: 'tableHeader'
+                            }
+                        ],
+                        ...topEnterprises.map((enterprise)=>[
+                                {
+                                    text: enterprise.name,
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: enterprise.industry,
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatNumberForExport(enterprise.employees),
+                                    style: 'tableBody'
+                                },
+                                {
+                                    text: formatCurrencyForExport(enterprise.revenue),
+                                    style: 'tableBody'
+                                }
+                            ])
+                    ]
+                },
+                layout: {
+                    fillColor: (rowIndex)=>rowIndex === 0 ? '#8b5cf6' : rowIndex % 2 === 0 ? '#faf5ff' : null,
+                    hLineColor: '#e5e7eb',
+                    vLineColor: '#e5e7eb'
+                },
+                margin: [
+                    0,
+                    10,
+                    0,
+                    0
+                ]
+            });
+        }
+        // Создаем и скачиваем PDF
+        const fileName = `Отчёт_предприятия_Москвы_${new Date().toISOString().split('T')[0]}.pdf`;
+        console.log('Генерируем PDF файл...');
+        pdf.createPdf(docDefinition).download(fileName);
+        console.log('PDF успешно создан:', fileName);
+        return fileName;
+    } catch (error) {
+        console.error('Ошибка генерации PDF:', error);
+        console.log('Переключаемся на простой PDF через jsPDF');
+        // Fallback на простой PDF через jsPDF
+        return generateSimplePDFReport(reportData);
     }
-    // Сохранение файла
-    const fileName = `otchet_${Date.now()}.pdf`;
-    doc.save(fileName);
+};
+const generateSimplePDFReport = (reportData)=>{
+    try {
+        console.log('Создаем упрощенный PDF отчет через jsPDF...');
+        const doc = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2f$dist$2f$jspdf$2e$es$2e$min$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"]();
+        // Добавляем поддержку Unicode через escape последовательности
+        const addUnicodeText = (text, x, y, fontSize = 12)=>{
+            doc.setFontSize(fontSize);
+            // Простая замена основных кириллических символов
+            const cyrillicMap = {
+                'А': 'A',
+                'Б': 'B',
+                'В': 'V',
+                'Г': 'G',
+                'Д': 'D',
+                'Е': 'E',
+                'Ё': 'Yo',
+                'Ж': 'Zh',
+                'З': 'Z',
+                'И': 'I',
+                'Й': 'Y',
+                'К': 'K',
+                'Л': 'L',
+                'М': 'M',
+                'Н': 'N',
+                'О': 'O',
+                'П': 'P',
+                'Р': 'R',
+                'С': 'S',
+                'Т': 'T',
+                'У': 'U',
+                'Ф': 'F',
+                'Х': 'Kh',
+                'Ц': 'Ts',
+                'Ч': 'Ch',
+                'Ш': 'Sh',
+                'Щ': 'Sch',
+                'Ъ': '',
+                'Ы': 'Y',
+                'Ь': '',
+                'Э': 'E',
+                'Ю': 'Yu',
+                'Я': 'Ya',
+                'а': 'a',
+                'б': 'b',
+                'в': 'v',
+                'г': 'g',
+                'д': 'd',
+                'е': 'e',
+                'ё': 'yo',
+                'ж': 'zh',
+                'з': 'z',
+                'и': 'i',
+                'й': 'y',
+                'к': 'k',
+                'л': 'l',
+                'м': 'm',
+                'н': 'n',
+                'о': 'o',
+                'п': 'p',
+                'р': 'r',
+                'с': 's',
+                'т': 't',
+                'у': 'u',
+                'ф': 'f',
+                'х': 'kh',
+                'ц': 'ts',
+                'ч': 'ch',
+                'ш': 'sh',
+                'щ': 'sch',
+                'ъ': '',
+                'ы': 'y',
+                'ь': '',
+                'э': 'e',
+                'ю': 'yu',
+                'я': 'ya'
+            };
+            const transliteratedText = text.replace(/[А-Яа-яЁё]/g, (char)=>cyrillicMap[char] || char);
+            doc.text(transliteratedText, x, y);
+        };
+        // Заголовок
+        addUnicodeText('OTCHYOT PO PREDPRIYATIYAM MOSKVY', 105, 20, 18);
+        doc.setFontSize(14);
+        doc.text('(Report on Moscow Enterprises)', 105, 30, {
+            align: 'center'
+        });
+        // Основная информация
+        let yPosition = 50;
+        addUnicodeText(`Nazvanie: ${reportData.title}`, 20, yPosition, 12);
+        yPosition += 10;
+        addUnicodeText(`Data sozdaniya: ${new Date().toLocaleDateString('ru-RU')}`, 20, yPosition, 12);
+        yPosition += 10;
+        addUnicodeText(`Period: ${reportData.period.from} - ${reportData.period.to}`, 20, yPosition, 12);
+        yPosition += 20;
+        // Общая статистика
+        addUnicodeText('OBSHCHAYA STATISTIKA', 20, yPosition, 14);
+        yPosition += 15;
+        const stats = [
+            [
+                'Vsego predpriyatiy:',
+                formatNumberForExport(reportData.stats.totalEnterprises)
+            ],
+            [
+                'Obshchaya vyruchka:',
+                formatCurrencyForExport(reportData.stats.totalRevenue)
+            ],
+            [
+                'Vsego sotrudnikov:',
+                formatNumberForExport(reportData.stats.totalEmployees)
+            ],
+            [
+                'Srednyaya vyruchka:',
+                formatCurrencyForExport(reportData.stats.averageRevenue)
+            ],
+            [
+                'Srednyaya chislennost:',
+                formatNumberForExport(Math.round(reportData.stats.averageEmployees))
+            ]
+        ];
+        stats.forEach(([label, value])=>{
+            doc.setFontSize(11);
+            doc.text(label, 20, yPosition);
+            doc.text(value, 120, yPosition);
+            yPosition += 8;
+        });
+        // Таблица с топ предприятиями
+        if (reportData.enterprises.length > 0) {
+            const topEnterprises = [
+                ...reportData.enterprises
+            ].sort((a, b)=>b.revenue - a.revenue).slice(0, 10);
+            yPosition += 10;
+            addUnicodeText('TOP 10 PREDPRIYATIY PO VYRUCHKE', 20, yPosition, 14);
+            yPosition += 10;
+            const tableData = topEnterprises.map((enterprise)=>[
+                    enterprise.name.replace(/[А-Яа-яЁё]/g, (char)=>{
+                        const cyrillicMap = {
+                            'А': 'A',
+                            'Б': 'B',
+                            'В': 'V',
+                            'Г': 'G',
+                            'Д': 'D',
+                            'Е': 'E',
+                            'Ё': 'Yo',
+                            'Ж': 'Zh',
+                            'З': 'Z',
+                            'И': 'I',
+                            'Й': 'Y',
+                            'К': 'K',
+                            'Л': 'L',
+                            'М': 'M',
+                            'Н': 'N',
+                            'О': 'O',
+                            'П': 'P',
+                            'Р': 'R',
+                            'С': 'S',
+                            'Т': 'T',
+                            'У': 'U',
+                            'Ф': 'F',
+                            'Х': 'Kh',
+                            'Ц': 'Ts',
+                            'Ч': 'Ch',
+                            'Ш': 'Sh',
+                            'Щ': 'Sch',
+                            'Ъ': '',
+                            'Ы': 'Y',
+                            'Ь': '',
+                            'Э': 'E',
+                            'Ю': 'Yu',
+                            'Я': 'Ya',
+                            'а': 'a',
+                            'б': 'b',
+                            'в': 'v',
+                            'г': 'g',
+                            'д': 'd',
+                            'е': 'e',
+                            'ё': 'yo',
+                            'ж': 'zh',
+                            'з': 'z',
+                            'и': 'i',
+                            'й': 'y',
+                            'к': 'k',
+                            'л': 'l',
+                            'м': 'm',
+                            'н': 'n',
+                            'о': 'o',
+                            'п': 'p',
+                            'р': 'r',
+                            'с': 's',
+                            'т': 't',
+                            'у': 'u',
+                            'ф': 'f',
+                            'х': 'kh',
+                            'ц': 'ts',
+                            'ч': 'ch',
+                            'ш': 'sh',
+                            'щ': 'sch',
+                            'ъ': '',
+                            'ы': 'y',
+                            'ь': '',
+                            'э': 'e',
+                            'ю': 'yu',
+                            'я': 'ya'
+                        };
+                        return cyrillicMap[char] || char;
+                    }),
+                    enterprise.industry.replace(/[А-Яа-яЁё]/g, (char)=>{
+                        const cyrillicMap = {
+                            'А': 'A',
+                            'Б': 'B',
+                            'В': 'V',
+                            'Г': 'G',
+                            'Д': 'D',
+                            'Е': 'E',
+                            'Ё': 'Yo',
+                            'Ж': 'Zh',
+                            'З': 'Z',
+                            'И': 'I',
+                            'Й': 'Y',
+                            'К': 'K',
+                            'Л': 'L',
+                            'М': 'M',
+                            'Н': 'N',
+                            'О': 'O',
+                            'П': 'P',
+                            'Р': 'R',
+                            'С': 'S',
+                            'Т': 'T',
+                            'У': 'U',
+                            'Ф': 'F',
+                            'Х': 'Kh',
+                            'Ц': 'Ts',
+                            'Ч': 'Ch',
+                            'Ш': 'Sh',
+                            'Щ': 'Sch',
+                            'Ъ': '',
+                            'Ы': 'Y',
+                            'Ь': '',
+                            'Э': 'E',
+                            'Ю': 'Yu',
+                            'Я': 'Ya',
+                            'а': 'a',
+                            'б': 'b',
+                            'в': 'v',
+                            'г': 'g',
+                            'д': 'd',
+                            'е': 'e',
+                            'ё': 'yo',
+                            'ж': 'zh',
+                            'з': 'z',
+                            'и': 'i',
+                            'й': 'y',
+                            'к': 'k',
+                            'л': 'l',
+                            'м': 'm',
+                            'н': 'n',
+                            'о': 'o',
+                            'п': 'p',
+                            'р': 'r',
+                            'с': 's',
+                            'т': 't',
+                            'у': 'u',
+                            'ф': 'f',
+                            'х': 'kh',
+                            'ц': 'ts',
+                            'ч': 'ch',
+                            'ш': 'sh',
+                            'щ': 'sch',
+                            'ъ': '',
+                            'ы': 'y',
+                            'ь': '',
+                            'э': 'e',
+                            'ю': 'yu',
+                            'я': 'ya'
+                        };
+                        return cyrillicMap[char] || char;
+                    }),
+                    formatNumberForExport(enterprise.employees),
+                    formatCurrencyForExport(enterprise.revenue)
+                ]);
+            (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$jspdf$2d$autotable$2f$dist$2f$jspdf$2e$plugin$2e$autotable$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"])(doc, {
+                head: [
+                    [
+                        'Nazvanie',
+                        'Otrasl',
+                        'Sotrudniki',
+                        'Vyruchka'
+                    ]
+                ],
+                body: tableData,
+                startY: yPosition,
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                headStyles: {
+                    fillColor: [
+                        59,
+                        130,
+                        246
+                    ],
+                    textColor: 255
+                },
+                alternateRowStyles: {
+                    fillColor: [
+                        248,
+                        250,
+                        252
+                    ]
+                }
+            });
+        }
+        // Сохранение файла
+        const fileName = `Report_Moscow_Enterprises_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        console.log('Упрощенный PDF успешно создан:', fileName);
+        return fileName;
+    } catch (error) {
+        console.error('Ошибка создания упрощенного PDF:', error);
+        throw error;
+    }
+};
+const generateHTMLReport = (reportData)=>{
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${reportData.title}</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 20px;
+                line-height: 1.6;
+                color: #333;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 8px;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+            }
+            .meta-info {
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+            }
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-bottom: 30px;
+            }
+            .stat-card {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                border-left: 4px solid #3b82f6;
+            }
+            .stat-card h3 {
+                margin: 0 0 10px 0;
+                color: #1f2937;
+                font-size: 14px;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+            .stat-card .value {
+                font-size: 24px;
+                font-weight: bold;
+                color: #3b82f6;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 30px;
+                background: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            th, td {
+                text-align: left;
+                padding: 12px;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            th {
+                background: #f3f4f6;
+                font-weight: 600;
+                color: #374151;
+            }
+            tr:hover {
+                background: #f9fafb;
+            }
+            .section-title {
+                font-size: 20px;
+                font-weight: bold;
+                margin: 30px 0 15px 0;
+                color: #1f2937;
+                border-bottom: 2px solid #3b82f6;
+                padding-bottom: 8px;
+            }
+            .print-button {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            }
+            @media print {
+                .print-button { display: none; }
+                body { margin: 0; padding: 15px; }
+            }
+        </style>
+    </head>
+    <body>
+        <button class="print-button" onclick="window.print()">Печать отчёта</button>
+        
+        <div class="header">
+            <h1>ОТЧЁТ ПО ПРЕДПРИЯТИЯМ МОСКВЫ</h1>
+            <h2>${reportData.title}</h2>
+        </div>
+
+        <div class="meta-info">
+            <strong>Дата создания:</strong> ${new Date().toLocaleString('ru-RU')}<br>
+            <strong>Период:</strong> ${reportData.period.from} - ${reportData.period.to}
+        </div>
+
+        <div class="section-title">Общая статистика</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Всего предприятий</h3>
+                <div class="value">${formatNumberForExport(reportData.stats.totalEnterprises)}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Общая выручка</h3>
+                <div class="value">${formatCurrencyForExport(reportData.stats.totalRevenue)}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Всего сотрудников</h3>
+                <div class="value">${formatNumberForExport(reportData.stats.totalEmployees)}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Средняя выручка</h3>
+                <div class="value">${formatCurrencyForExport(reportData.stats.averageRevenue)}</div>
+            </div>
+        </div>
+
+        ${reportData.industryStats && reportData.industryStats.length > 0 ? `
+        <div class="section-title">Статистика по отраслям</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Отрасль</th>
+                    <th>Количество предприятий</th>
+                    <th>Общая выручка</th>
+                    <th>Средняя численность</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${reportData.industryStats.map((i)=>`
+                <tr>
+                    <td>${i.industry}</td>
+                    <td>${formatNumberForExport(i.count)}</td>
+                    <td>${formatCurrencyForExport(i.totalRevenue)}</td>
+                    <td>${formatNumberForExport(Math.round(i.averageEmployees))}</td>
+                </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        ` : ''}
+
+        ${reportData.regionStats && reportData.regionStats.length > 0 ? `
+        <div class="section-title">Статистика по регионам</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Регион</th>
+                    <th>Количество предприятий</th>
+                    <th>Общая выручка</th>
+                    <th>Средняя численность</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${reportData.regionStats.map((r)=>`
+                <tr>
+                    <td>${r.region}</td>
+                    <td>${formatNumberForExport(r.count)}</td>
+                    <td>${formatCurrencyForExport(r.totalRevenue)}</td>
+                    <td>${formatNumberForExport(Math.round(r.averageEmployees))}</td>
+                </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        ` : ''}
+
+        ${reportData.enterprises.length > 0 ? `
+        <div class="section-title">Топ 10 предприятий по выручке</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Отрасль</th>
+                    <th>Регион</th>
+                    <th>Сотрудники</th>
+                    <th>Выручка</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${reportData.enterprises.sort((a, b)=>b.revenue - a.revenue).slice(0, 10).map((e)=>`
+                <tr>
+                    <td>${e.name}</td>
+                    <td>${e.industry}</td>
+                    <td>${e.region}</td>
+                    <td>${formatNumberForExport(e.employees)}</td>
+                    <td>${formatCurrencyForExport(e.revenue)}</td>
+                </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        ` : ''}
+    </body>
+    </html>
+  `;
+    // Создаем и открываем HTML файл в новом окне
+    const blob = new Blob([
+        htmlContent
+    ], {
+        type: 'text/html;charset=utf-8'
+    });
+    const url = URL.createObjectURL(blob);
+    const newWindow = window.open(url, '_blank');
+    if (newWindow) {
+        newWindow.document.title = `Отчёт - ${reportData.title}`;
+    }
+    return htmlContent;
 };
 }),
 "[project]/src/app/reports/page.tsx [app-ssr] (ecmascript)", ((__turbopack_context__) => {
@@ -864,6 +1673,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/users.js [app-ssr] (ecmascript) <export default as Users>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$alert$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__AlertCircle$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/circle-alert.js [app-ssr] (ecmascript) <export default as AlertCircle>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$upload$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Upload$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/upload.js [app-ssr] (ecmascript) <export default as Upload>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$globe$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Globe$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/globe.js [app-ssr] (ecmascript) <export default as Globe>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/app/lib/data-utils.ts [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$analytics$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/app/lib/analytics.ts [app-ssr] (ecmascript)");
@@ -930,6 +1740,7 @@ function ReportsPage() {
     const handleGenerateReport = async (format)=>{
         setGeneratingReport(true);
         try {
+            console.log(`Начинаем генерацию отчета в формате ${format.toUpperCase()}...`);
             // Подготавливаем данные для отчета
             const reportData = {
                 title: reportConfig.title,
@@ -948,14 +1759,22 @@ function ReportsPage() {
                 industryStats: reportConfig.sections.industries ? industryStats : undefined,
                 regionStats: reportConfig.sections.regions ? regionStats : undefined
             };
-            // Генерируем отчет в нужном формате
+            // Генерируем отчет в нужном фор��ате
             if (format === 'excel') {
+                console.log('Генерируем Excel отчет...');
                 (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$report$2d$generator$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generateExcelReport"])(reportData);
+                console.log('Excel отчет успешно создан');
+            } else if (format === 'html') {
+                console.log('Генерируем HTML отчет...');
+                (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$report$2d$generator$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generateHTMLReport"])(reportData);
+                console.log('HTML отчет успешно ��оздан');
             } else {
-                (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$report$2d$generator$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generatePDFReport"])(reportData);
+                console.log('Генерируем PDF отчет...');
+                await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$report$2d$generator$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generatePDFReport"])(reportData); // Теперь ждем завершения асинхронной функции
+                console.log('PDF отчет успеш��о создан');
             }
-            // Показываем уведомление об успехе (можно добавить toast notification)
-            console.log(`Отчет в формате ${format.toUpperCase()} успешно сгенерирован`);
+            // Показываем уведомление об успехе
+            alert(`Отчет в формате ${format.toUpperCase()} успешно сгенерирован и загружен!`);
         } catch (error) {
             console.error('Ошибка генерации отчета:', error);
             alert(`Ошибка при генерации отчета: ${error.message}`);
@@ -988,7 +1807,7 @@ function ReportsPage() {
                         className: "animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 144,
+                        lineNumber: 154,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -996,18 +1815,18 @@ function ReportsPage() {
                         children: "Загрузка данных..."
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 145,
+                        lineNumber: 155,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/reports/page.tsx",
-                lineNumber: 143,
+                lineNumber: 153,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/reports/page.tsx",
-            lineNumber: 142,
+            lineNumber: 152,
             columnNumber: 7
         }, this);
     }
@@ -1021,7 +1840,7 @@ function ReportsPage() {
                         className: "w-12 h-12 text-red-500 mx-auto mb-4"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 155,
+                        lineNumber: 165,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1029,7 +1848,7 @@ function ReportsPage() {
                         children: error
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 156,
+                        lineNumber: 166,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1037,18 +1856,18 @@ function ReportsPage() {
                         children: "Проверьте, что бэкенд запущен на порту 4000"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 157,
+                        lineNumber: 167,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/reports/page.tsx",
-                lineNumber: 154,
+                lineNumber: 164,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/reports/page.tsx",
-            lineNumber: 153,
+            lineNumber: 163,
             columnNumber: 7
         }, this);
     }
@@ -1062,7 +1881,7 @@ function ReportsPage() {
                         className: "w-12 h-12 text-gray-400 mx-auto mb-4"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 167,
+                        lineNumber: 177,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1070,7 +1889,7 @@ function ReportsPage() {
                         children: "Нет данных для отчетов"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 168,
+                        lineNumber: 178,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1078,7 +1897,7 @@ function ReportsPage() {
                         children: "Загрузите файл с данными предприятий"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 169,
+                        lineNumber: 179,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -1089,25 +1908,25 @@ function ReportsPage() {
                                 className: "w-5 h-5 mr-2"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 174,
+                                lineNumber: 184,
                                 columnNumber: 13
                             }, this),
                             "Загрузить данные"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 170,
+                        lineNumber: 180,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/reports/page.tsx",
-                lineNumber: 166,
+                lineNumber: 176,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/reports/page.tsx",
-            lineNumber: 165,
+            lineNumber: 175,
             columnNumber: 7
         }, this);
     }
@@ -1121,7 +1940,7 @@ function ReportsPage() {
                         children: "Генерация отчётов"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 186,
+                        lineNumber: 196,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1129,13 +1948,13 @@ function ReportsPage() {
                         children: "Создайте детальные отчёты по предприятиям Москвы в различных форматах"
                     }, void 0, false, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 187,
+                        lineNumber: 197,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/reports/page.tsx",
-                lineNumber: 185,
+                lineNumber: 195,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1152,7 +1971,7 @@ function ReportsPage() {
                                         children: "Основные настройки"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 197,
+                                        lineNumber: 207,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1165,7 +1984,7 @@ function ReportsPage() {
                                                         children: "Название отчёта"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 201,
+                                                        lineNumber: 211,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1175,13 +1994,13 @@ function ReportsPage() {
                                                         className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 204,
+                                                        lineNumber: 214,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 200,
+                                                lineNumber: 210,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1194,7 +2013,7 @@ function ReportsPage() {
                                                                 children: "Дата начала"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 214,
+                                                                lineNumber: 224,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1207,13 +2026,13 @@ function ReportsPage() {
                                                                 className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 217,
+                                                                lineNumber: 227,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 213,
+                                                        lineNumber: 223,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1223,7 +2042,7 @@ function ReportsPage() {
                                                                 children: "Дата окончания"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 228,
+                                                                lineNumber: 238,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1236,31 +2055,31 @@ function ReportsPage() {
                                                                 className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 231,
+                                                                lineNumber: 241,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 227,
+                                                        lineNumber: 237,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 212,
+                                                lineNumber: 222,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 199,
+                                        lineNumber: 209,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 196,
+                                lineNumber: 206,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1271,7 +2090,7 @@ function ReportsPage() {
                                         children: "Фильтры данных"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 247,
+                                        lineNumber: 257,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1284,7 +2103,7 @@ function ReportsPage() {
                                                         children: "Отрасли (оставьте пустым для всех)"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 251,
+                                                        lineNumber: 261,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1301,18 +2120,18 @@ function ReportsPage() {
                                                                 children: industry
                                                             }, industry, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 265,
+                                                                lineNumber: 275,
                                                                 columnNumber: 21
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 254,
+                                                        lineNumber: 264,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 250,
+                                                lineNumber: 260,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1322,7 +2141,7 @@ function ReportsPage() {
                                                         children: "Регионы (оставьте пустым для всех)"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 271,
+                                                        lineNumber: 281,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1339,30 +2158,30 @@ function ReportsPage() {
                                                                 children: region
                                                             }, region, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 285,
+                                                                lineNumber: 295,
                                                                 columnNumber: 21
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 274,
+                                                        lineNumber: 284,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 270,
+                                                lineNumber: 280,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 249,
+                                        lineNumber: 259,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 246,
+                                lineNumber: 256,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1373,7 +2192,7 @@ function ReportsPage() {
                                         children: "Разделы отчёта"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 294,
+                                        lineNumber: 304,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1396,7 +2215,7 @@ function ReportsPage() {
                                                         className: "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 308,
+                                                        lineNumber: 318,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1404,31 +2223,31 @@ function ReportsPage() {
                                                         children: sectionNames[key]
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 314,
+                                                        lineNumber: 324,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, key, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 307,
+                                                lineNumber: 317,
                                                 columnNumber: 19
                                             }, this);
                                         })
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 296,
+                                        lineNumber: 306,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 293,
+                                lineNumber: 303,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 194,
+                        lineNumber: 204,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1442,7 +2261,7 @@ function ReportsPage() {
                                         children: "Превью данных"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 326,
+                                        lineNumber: 336,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1458,7 +2277,7 @@ function ReportsPage() {
                                                                 className: "w-5 h-5 text-blue-600"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 331,
+                                                                lineNumber: 341,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1466,13 +2285,13 @@ function ReportsPage() {
                                                                 children: "Предприятий"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 332,
+                                                                lineNumber: 342,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 330,
+                                                        lineNumber: 340,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1480,13 +2299,13 @@ function ReportsPage() {
                                                         children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatNumber"])(filteredEnterprises.length)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 334,
+                                                        lineNumber: 344,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 329,
+                                                lineNumber: 339,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1499,53 +2318,12 @@ function ReportsPage() {
                                                                 className: "w-5 h-5 text-green-600"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 339,
+                                                                lineNumber: 349,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: "text-sm font-medium text-green-900",
                                                                 children: "Общая выручка"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 340,
-                                                                columnNumber: 19
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 338,
-                                                        columnNumber: 17
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "text-green-900 font-bold text-sm",
-                                                        children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatCurrency"])(overallStats.totalRevenue)
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 342,
-                                                        columnNumber: 17
-                                                    }, this)
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 337,
-                                                columnNumber: 15
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "flex items-center justify-between p-3 bg-purple-50 rounded-lg",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                        className: "flex items-center space-x-2",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__["Users"], {
-                                                                className: "w-5 h-5 text-purple-600"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/src/app/reports/page.tsx",
-                                                                lineNumber: 349,
-                                                                columnNumber: 19
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                                className: "text-sm font-medium text-purple-900",
-                                                                children: "Сотрудников"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/app/reports/page.tsx",
                                                                 lineNumber: 350,
@@ -1558,8 +2336,8 @@ function ReportsPage() {
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                        className: "text-purple-900 font-bold",
-                                                        children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatNumber"])(overallStats.totalEmployees)
+                                                        className: "text-green-900 font-bold text-sm",
+                                                        children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatCurrency"])(overallStats.totalRevenue)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
                                                         lineNumber: 352,
@@ -1569,6 +2347,47 @@ function ReportsPage() {
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
                                                 lineNumber: 347,
+                                                columnNumber: 15
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center justify-between p-3 bg-purple-50 rounded-lg",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-center space-x-2",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__["Users"], {
+                                                                className: "w-5 h-5 text-purple-600"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/app/reports/page.tsx",
+                                                                lineNumber: 359,
+                                                                columnNumber: 19
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "text-sm font-medium text-purple-900",
+                                                                children: "Сотрудников"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/app/reports/page.tsx",
+                                                                lineNumber: 360,
+                                                                columnNumber: 19
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/app/reports/page.tsx",
+                                                        lineNumber: 358,
+                                                        columnNumber: 17
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "text-purple-900 font-bold",
+                                                        children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$lib$2f$data$2d$utils$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatNumber"])(overallStats.totalEmployees)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/reports/page.tsx",
+                                                        lineNumber: 362,
+                                                        columnNumber: 17
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/reports/page.tsx",
+                                                lineNumber: 357,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1584,7 +2403,7 @@ function ReportsPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 356,
+                                                        lineNumber: 366,
                                                         columnNumber: 17
                                                     }, this),
                                                     reportConfig.includeIndustries.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1595,7 +2414,7 @@ function ReportsPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 360,
+                                                        lineNumber: 370,
                                                         columnNumber: 19
                                                     }, this),
                                                     reportConfig.includeRegions.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1606,25 +2425,25 @@ function ReportsPage() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 365,
+                                                        lineNumber: 375,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 355,
+                                                lineNumber: 365,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 328,
+                                        lineNumber: 338,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 325,
+                                lineNumber: 335,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1635,7 +2454,7 @@ function ReportsPage() {
                                         children: "Генерация отчёта"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 375,
+                                        lineNumber: 385,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1650,26 +2469,26 @@ function ReportsPage() {
                                                         className: "animate-spin rounded-full h-5 w-5 border-b-2 border-white"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 384,
+                                                        lineNumber: 394,
                                                         columnNumber: 19
                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$text$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FileText$3e$__["FileText"], {
                                                         className: "w-5 h-5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 386,
+                                                        lineNumber: 396,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                         children: "Скачать PDF"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 388,
+                                                        lineNumber: 398,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 378,
+                                                lineNumber: 388,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1681,32 +2500,63 @@ function ReportsPage() {
                                                         className: "animate-spin rounded-full h-5 w-5 border-b-2 border-white"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 397,
+                                                        lineNumber: 407,
                                                         columnNumber: 19
                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$download$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Download$3e$__["Download"], {
                                                         className: "w-5 h-5"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 399,
+                                                        lineNumber: 409,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                         children: "Скачать Excel"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/reports/page.tsx",
-                                                        lineNumber: 401,
+                                                        lineNumber: 411,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 391,
+                                                lineNumber: 401,
+                                                columnNumber: 15
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                onClick: ()=>handleGenerateReport('html'),
+                                                disabled: generatingReport,
+                                                className: "w-full flex items-center justify-center space-x-2 p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors",
+                                                children: [
+                                                    generatingReport ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "animate-spin rounded-full h-5 w-5 border-b-2 border-white"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/reports/page.tsx",
+                                                        lineNumber: 420,
+                                                        columnNumber: 19
+                                                    }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$globe$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Globe$3e$__["Globe"], {
+                                                        className: "w-5 h-5"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/reports/page.tsx",
+                                                        lineNumber: 422,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        children: "Скачать HTML"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/reports/page.tsx",
+                                                        lineNumber: 424,
+                                                        columnNumber: 17
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/reports/page.tsx",
+                                                lineNumber: 414,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 377,
+                                        lineNumber: 387,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1716,18 +2566,18 @@ function ReportsPage() {
                                             children: "💡 Отчёты генерируются на основе текущих фильтров и выбранных разделов"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/reports/page.tsx",
-                                            lineNumber: 406,
+                                            lineNumber: 429,
                                             columnNumber: 15
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 405,
+                                        lineNumber: 428,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 374,
+                                lineNumber: 384,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1738,7 +2588,7 @@ function ReportsPage() {
                                         children: "Быстрые шаблоны"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 414,
+                                        lineNumber: 437,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1762,7 +2612,7 @@ function ReportsPage() {
                                                 children: "📊 Полный отчёт"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 417,
+                                                lineNumber: 440,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1781,7 +2631,7 @@ function ReportsPage() {
                                                 children: "📋 Краткая сводка"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 436,
+                                                lineNumber: 459,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1800,37 +2650,37 @@ function ReportsPage() {
                                                 children: "🏭 Отраслевой анализ"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/reports/page.tsx",
-                                                lineNumber: 453,
+                                                lineNumber: 476,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/reports/page.tsx",
-                                        lineNumber: 416,
+                                        lineNumber: 439,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/reports/page.tsx",
-                                lineNumber: 413,
+                                lineNumber: 436,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/reports/page.tsx",
-                        lineNumber: 323,
+                        lineNumber: 333,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/reports/page.tsx",
-                lineNumber: 192,
+                lineNumber: 202,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/reports/page.tsx",
-        lineNumber: 183,
+        lineNumber: 193,
         columnNumber: 5
     }, this);
 }

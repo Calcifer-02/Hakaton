@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, FileText, Building2, TrendingUp, Users, AlertCircle, Upload as UploadIcon } from 'lucide-react';
+import { Download, FileText, Building2, TrendingUp, Users, AlertCircle, Upload as UploadIcon, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Enterprise } from '../types/enterprise';
 import { formatNumber, formatCurrency, INDUSTRIES, MOSCOW_REGIONS } from '../lib/data-utils';
 import { calculateOverallStats, calculateIndustryStats, calculateRegionStats, filterEnterprises } from '../lib/analytics';
 import { getEnterprises } from '../lib/api-client';
-import { generateExcelReport, generatePDFReport } from '../lib/report-generator';
+import { generateExcelReport, generatePDFReport, generateHTMLReport } from '../lib/report-generator';
 
 interface ReportConfig {
   title: string;
@@ -80,10 +80,12 @@ export default function ReportsPage() {
   const industryStats = calculateIndustryStats(filteredEnterprises);
   const regionStats = calculateRegionStats(filteredEnterprises);
 
-  const handleGenerateReport = async (format: 'pdf' | 'excel') => {
+  const handleGenerateReport = async (format: 'pdf' | 'excel' | 'html') => {
     setGeneratingReport(true);
 
     try {
+      console.log(`Начинаем генерацию отчета в формате ${format.toUpperCase()}...`);
+
       // Подготавливаем данные для отчета
       const reportData = {
         title: reportConfig.title,
@@ -103,15 +105,23 @@ export default function ReportsPage() {
         regionStats: reportConfig.sections.regions ? regionStats : undefined,
       };
 
-      // Генерируем отчет в нужном формате
+      // Генерируем отчет в нужном фор��ате
       if (format === 'excel') {
+        console.log('Генерируем Excel отчет...');
         generateExcelReport(reportData);
+        console.log('Excel отчет успешно создан');
+      } else if (format === 'html') {
+        console.log('Генерируем HTML отчет...');
+        generateHTMLReport(reportData);
+        console.log('HTML отчет успешно ��оздан');
       } else {
-        generatePDFReport(reportData);
+        console.log('Генерируем PDF отчет...');
+        await generatePDFReport(reportData); // Теперь ждем завершения асинхронной функции
+        console.log('PDF отчет успеш��о создан');
       }
 
-      // Показываем уведомление об успехе (можно добавить toast notification)
-      console.log(`Отчет в формате ${format.toUpperCase()} успешно сгенерирован`);
+      // Показываем уведомление об успехе
+      alert(`Отчет в формате ${format.toUpperCase()} успешно сгенерирован и загружен!`);
     } catch (error) {
       console.error('Ошибка генерации отчета:', error);
       alert(`Ошибка при генерации отчета: ${(error as Error).message}`);
@@ -399,6 +409,19 @@ export default function ReportsPage() {
                   <Download className="w-5 h-5" />
                 )}
                 <span>Скачать Excel</span>
+              </button>
+
+              <button
+                onClick={() => handleGenerateReport('html')}
+                disabled={generatingReport}
+                className="w-full flex items-center justify-center space-x-2 p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {generatingReport ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <Globe className="w-5 h-5" />
+                )}
+                <span>Скачать HTML</span>
               </button>
             </div>
 

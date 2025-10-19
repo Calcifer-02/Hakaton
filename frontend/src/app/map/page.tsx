@@ -2,10 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { MapPin, Filter, X, Loader2, Building2, Users, DollarSign } from 'lucide-react';
+import { MapPin, Filter, X, Loader2, Building2, Users, Banknote } from 'lucide-react';
 import { Enterprise } from '../types/enterprise';
 import { getEnterprises } from '../lib/api-client';
 import { INDUSTRIES, MOSCOW_REGIONS, formatNumber, formatCurrency } from '../lib/data-utils';
+
+// Тип для необработанного ответа API
+interface RawEnterprise {
+  id: string;
+  name: string;
+  industry: string;
+  region: string;
+  employees: number;
+  revenue: number;
+  taxesPaid: number;
+  registrationDate: string;
+  lastUpdated: string;
+  status: string;
+  latitude: number | null;
+  longitude: number | null;
+  contactInfo: {
+    address: string;
+    phone: string;
+    email: string;
+  };
+}
 
 // Динамический импорт карты (только на клиенте)
 const MapView = dynamic(() => import('./MapView'), {
@@ -34,7 +55,7 @@ export default function MapPage() {
 
         if (response.success && response.data) {
           // Преобразуем данные и нормализуем типы
-          const normalizedData = response.data.map(enterprise => ({
+          const normalizedData = response.data.map((enterprise: RawEnterprise) => ({
             ...enterprise,
             // Принудительно преобразуем координаты в числа
             latitude: enterprise.latitude !== null && enterprise.latitude !== undefined
@@ -244,6 +265,7 @@ export default function MapPage() {
           <MapView
             enterprises={enterprisesWithCoordinates}
             onMarkerClick={setSelectedEnterprise}
+            selectedIndustries={selectedIndustries}
           />
         </div>
 
@@ -301,7 +323,7 @@ export default function MapPage() {
 
                   <div>
                     <div className="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-                      <DollarSign className="w-4 h-4" />
+                      <Banknote className="w-4 h-4" />
                       <span>Выручка</span>
                     </div>
                     <p className="text-lg font-bold text-gray-900">
